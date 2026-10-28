@@ -77,6 +77,24 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .seg button{flex:1;font:500 13px/1.2 var(--body);padding:9px 6px;border:0;background:var(--bg);color:var(--fg);cursor:pointer}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.pickrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.curpick{display:inline-flex;align-items:center;gap:6px;font-size:14px;padding:6px 10px;border-radius:4px;background:var(--fg);color:var(--bg)}
+.curpick b{font-weight:600}
+.picker{position:fixed;inset:0;z-index:40;background:var(--surface);display:flex;flex-direction:column;gap:12px;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.pickhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pickhead h3{font:700 22px/1.15 var(--display);margin:0}
+#pickSearch{font:16px var(--body);padding:11px 12px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%}
+.picklist{flex:1;min-height:0;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px);display:flex;flex-direction:column;gap:18px}
+.pickgroup{display:flex;flex-direction:column}
+.pickgroup h4{margin:0 0 6px;font:600 12px/1 var(--body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.pickitem{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:center;padding:8px 6px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--fg);text-align:left;font:inherit;cursor:pointer}
+.pickitem:hover,.pickitem[aria-current="true"]{background:var(--sunk)}
+.pickitem:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pickitem .ps{display:grid;grid-template-columns:1fr 1fr;width:44px;height:30px;border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.pickitem .pn{font-weight:600;font-size:15px}
+.pickitem .pm{font:12px var(--mono);color:var(--muted)}
+.pickempty{color:var(--muted);font-size:14px}
 .col{display:flex;flex-direction:column;gap:20px;min-width:0}
 .field.full{grid-column:1/-1}
 .stripwrap{display:flex;flex-direction:column;gap:5px;padding:6px;border-radius:5px;border:1px solid transparent}
@@ -190,6 +208,10 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
         <div class="field full">
           <span class="lbl">Color</span>
           <div class="seg" id="pigSeg"></div>
+          <div class="pickrow">
+            <button class="btn ghost" id="moreColors" type="button">More colors…</button>
+            <span class="curpick" id="pigCurrent" hidden><span class="dot" id="pigCurDot"></span><b id="pigCurName"></b></span>
+          </div>
           <small id="pigNote"></small>
         </div>
         <div class="field">
@@ -295,6 +317,15 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
   </div>
 </div>
 
+<div class="picker" id="picker" hidden role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+  <div class="pickhead">
+    <h3 id="pickTitle">Choose a color</h3>
+    <button class="btn ghost" id="pickClose" type="button">Close</button>
+  </div>
+  <input type="search" id="pickSearch" placeholder="Search by name or pigment, e.g. sienna or PB29" aria-label="Search colors" autocomplete="off">
+  <div class="picklist" id="pickList"></div>
+</div>
+
 <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Enlarged value map">
   <div class="lbbar">
     <span id="lbTitle" class="lbtitle">Value map</span>
@@ -307,24 +338,15 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
   <div class="lbmsg" id="lbMsg" role="status"></div>
 </div>
 
+<script src="paints.js"></script>
 <script>
 (function(){
-// Yesterday's four colors. Each deepens its darkest tones with its complement from the same set.
+// Full W&N Artisan and Cobra ranges come from paints.js. The six favorites keep hand-picked partners.
 const PALETTES={
- artisan:{brand:'Winsor & Newton Artisan',white:'Titanium White',paints:[
-  {id:'blue',label:'Ultramarine',name:'French Ultramarine',code:'PB29',rgb:[0.040,0.030,0.150],s:0.6,near:'pblue',comp:'orange',note:'Warm, violet-leaning blue.'},
-  {id:'pblue',label:'Phthalo Blue',name:'Phthalo Blue (Red Shade)',code:'PB15',rgb:[0.012,0.022,0.065],s:1.8,near:'blue',comp:'orange',note:'Cool, intense blue and very strong. Its tints are the brightest, cleanest blues in the set. Add it to white a speck at a time.'},
-  {id:'green',label:'Phthalo Green',name:'Phthalo Green (Blue Shade)',code:'PG7',rgb:[0.012,0.060,0.045],s:1.6,near:'pblue',comp:'red',note:'Extremely strong. Tiny amounts tint a lot of white, so add it a speck at a time.'},
-  {id:'orange',label:'Orange',name:'Cadmium Orange Hue',code:'PO43',rgb:[0.470,0.110,0.018],s:1.0,near:'red',comp:'blue',note:'A transparent orange that reaches a middle value.'},
-  {id:'red',label:'Red',name:'Cadmium Red Hue',code:'PR170, PR188',rgb:[0.450,0.050,0.035],s:1.0,near:'blue',comp:'green',note:'Bright, warm red.'}]},
- cobra:{brand:'Cobra',white:'Titanium White 105',paints:[
-  {id:'blue',label:'Ultramarine',name:'Ultramarine 504',code:'PB29',rgb:[0.042,0.032,0.150],s:0.55,near:'pblue',comp:'orange',note:'Warm, violet-leaning blue.'},
-  {id:'pblue',label:'Phthalo Blue',name:'Phthalo Blue 570',code:'PB15',rgb:[0.012,0.022,0.065],s:1.7,near:'blue',comp:'orange',note:'Cool, intense blue and very strong. Its tints are the brightest, cleanest blues in the set. Add it to white a speck at a time.'},
-  {id:'green',label:'Phthalo Green',name:'Phthalo Green 675',code:'PG7',rgb:[0.012,0.060,0.045],s:1.5,near:'pblue',comp:'red',note:'Extremely strong. Tiny amounts tint a lot of white, so add it a speck at a time.'},
-  {id:'lgreen',label:'Light Green',name:'Permanent Green Light 618',code:'PG7, PY',rgb:[0.110,0.300,0.050],s:0.9,near:'green',comp:'red',note:'Brighter, yellower green.'},
-  {id:'orange',label:'Orange',name:'Cadmium Orange 211',code:'PO20',rgb:[0.620,0.200,0.015],s:0.9,near:'red',comp:'blue',note:'A light, opaque orange.'},
-  {id:'red',label:'Red',name:'Pyrrole Red 315',code:'PR254',rgb:[0.440,0.040,0.033],s:1.1,near:'blue',comp:'green',note:'Clean, punchy red with strong tinting.'}]}
+ artisan:{brand:'Winsor & Newton Artisan',white:'Titanium White',paints:window.PAINT_DATA.artisan},
+ cobra:{brand:'Cobra',white:'Titanium White 105',paints:window.PAINT_DATA.cobra}
 };
+const FAMILIES=[['blue','Blues'],['green','Greens'],['yellow','Yellows'],['orange','Oranges'],['red','Reds'],['pink','Pinks and magentas'],['violet','Violets'],['earth','Earths'],['gray','Grays and blacks']];
 let PIGMENTS=PALETTES.artisan.paints;
 const byId=id=>PIGMENTS.find(x=>x.id===id);
 const WHITE={name:'Titanium White',rgb:[0.90,0.90,0.885]};
@@ -537,7 +559,7 @@ function render(){
     const strip=$(id);strip.innerHTML='';
     const b=byId(zones[0].v[k].partner);
     const used=zones.filter(z=>z.v[k].deep>0).length;
-    $(lid).innerHTML='<b>'+kind+'</b> · darks with '+(b?b.name:'none')+(used?'':' · not needed for these tones')+(state.darks===k?'<span class="inuse">In use</span>':'');
+    $(lid).innerHTML='<b>'+kind+'</b> · '+(b?'darks with '+b.name:'no darker partner in this range')+(used?'':' · not needed for these tones')+(state.darks===k?'<span class="inuse">In use</span>':'');
     $(id+'Wrap').classList.toggle('on',state.darks===k);
     zones.forEach((z,i)=>{
       const d=document.createElement('div');
@@ -558,7 +580,7 @@ function render(){
     ' · darks: '+(state.darks==='comp'?'complement':'same family')+
     (state.contrast!=='natural'?' · '+state.contrast+' contrast':'')+(state.key!=='natural'?' · '+state.key+' key':'')+
     (mask&&mask.some(v=>v>0)&&state.lift>0?' · one area brightened':'');
-  $('pigNote').textContent=p.note;
+  $('pigNote').textContent=paintNote(p);
   $('medNote').textContent=state.med==='acrylic'
     ?'Acrylic dries a little darker, so these wet mixes are set slightly lighter than the target.'
     :'Water-mixable oils dry close to their wet color, so mixes match the target directly.';
@@ -596,7 +618,7 @@ function render(){
   const tips=[
     'Mix every tone before you start painting, in separate puddles, lightest to darkest. Make more of the tones with the largest share of the image.',
     'For the light tones, add the '+p.label.toLowerCase()+' into the white a little at a time. '+p.name+' is far stronger than white, so going the other way wastes paint.',
-    'For the darkest tones, add the '+b.label.toLowerCase()+' into the '+p.label.toLowerCase()+' with the knife tip, a little at a time. Too much shifts the hue.',
+    b?'For the darkest tones, add the '+b.label.toLowerCase()+' into the '+p.label.toLowerCase()+' with the knife tip, a little at a time. Too much shifts the hue.':'The darkest tone is '+p.name+' straight from the tube.',
     'Check each puddle by dabbing it on a scrap card and holding it against the same area of a grayscale print of your photo. Squint to compare.',
     state.med==='acrylic'?'Let a test dab dry for a minute before judging it. Acrylic darkens as it dries.':'Keep the oil content low in early layers (fat over lean), especially if you will paint color over this study later.',
     'Paint in tone order: block in the darkest shapes first, then work up to the lights.'
@@ -643,10 +665,25 @@ function sample(){
 }
 
 // ---------- wiring ----------
-function buildPig(){
+function sameTube(id,from,to){
+  const t=PALETTES[from].paints.find(x=>x.id===id);if(!t)return null;
+  const key=n=>n.toLowerCase().replace(/\s+\d+$/,'').replace(/\(.*\)/,'').replace(/grey/g,'gray').replace(/\s+/g,' ').trim();
+  const m=PALETTES[to].paints.find(x=>x.id===id)||PALETTES[to].paints.find(x=>key(x.name)===key(t.name));
+  return m?m.id:null;
+}
+function buildPig(prevBrand){
+  if(prevBrand&&prevBrand!==state.brand)state.pig=sameTube(state.pig,prevBrand,state.brand)||(state.pig==='lgreen'?'green':'blue');
   PIGMENTS=PALETTES[state.brand].paints;
-  if(!byId(state.pig))state.pig=state.pig==='lgreen'?'green':'blue';
-  $('pigSeg').innerHTML=PIGMENTS.map(p=>'<button type="button" data-v="'+p.id+'" aria-pressed="'+(p.id===state.pig)+'" title="'+p.name+'"><span class="dot" style="background:'+hex(mix(0.35,p))+'"></span>'+p.label+'</button>').join('');
+  if(!byId(state.pig))state.pig='blue';
+  $('pigSeg').innerHTML=PIGMENTS.filter(p=>p.fav).map(p=>'<button type="button" data-v="'+p.id+'" aria-pressed="'+(p.id===state.pig)+'" title="'+p.name+'"><span class="dot" style="background:'+hex(mix(0.35,p))+'"></span>'+p.label+'</button>').join('');
+  const cur=byId(state.pig);
+  $('pigCurrent').hidden=!!cur.fav;
+  if(!cur.fav){$('pigCurDot').style.background=hex(mix(0.35,cur));$('pigCurName').textContent=cur.name}
+}
+function paintNote(p){
+  if(p.note)return p.note;
+  const v=(p.pureL/10).toFixed(1);
+  return 'Pigments '+p.code+'. Straight from the tube it reaches about value '+v+(p.pureL>45?', so the darker tones lean on the partner paint.':'.');
 }
 buildPig();
 $('nTones').addEventListener('input',e=>{state.n=+e.target.value;$('nOut').textContent=state.n;analyze()});
@@ -667,6 +704,44 @@ function openLightbox(){
 function closeLightbox(){$('lightbox').hidden=true;$('enlarge').focus()}
 $('enlarge').onclick=openLightbox;
 $('lbClose').onclick=closeLightbox;
+
+// ---------- full color picker ----------
+function renderPicker(){
+  const q=$('pickSearch').value.trim().toLowerCase();
+  const list=PIGMENTS.filter(p=>!q||p.name.toLowerCase().includes(q)||p.code.toLowerCase().replace(/\s/g,'').includes(q.replace(/\s/g,'')));
+  const box=$('pickList');box.innerHTML='';
+  if(!list.length){box.innerHTML='<p class="pickempty">No '+PALETTES[state.brand].brand+' color matches that. Try part of the name or a pigment code.</p>';return}
+  const groups=[['fav','Your colors']].concat(FAMILIES);
+  for(const [fam,title] of groups){
+    const items=list.filter(p=>fam==='fav'?p.fav:(!p.fav&&p.family===fam));
+    if(!items.length)continue;
+    const g=document.createElement('div');g.className='pickgroup';
+    const h=document.createElement('h4');h.textContent=title;g.appendChild(h);
+    for(const p of items){
+      const b=document.createElement('button');b.type='button';b.className='pickitem';
+      if(p.id===state.pig)b.setAttribute('aria-current','true');
+      b.innerHTML='<span class="ps"><span style="background:'+hex(mix(1,p))+'"></span><span style="background:'+hex(mix(0.3,p))+'"></span></span><span><span class="pn"></span><br><span class="pm"></span></span>';
+      b.querySelector('.pn').textContent=p.name;
+      b.querySelector('.pm').textContent=p.code+' · value '+(p.pureL/10).toFixed(1)+' at full strength';
+      b.onclick=()=>{state.pig=p.id;closePicker();buildPig();computeMixes()};
+      g.appendChild(b);
+    }
+    box.appendChild(g);
+  }
+}
+function openPicker(){
+  $('pickTitle').textContent='Choose a '+PALETTES[state.brand].brand+' color';
+  $('pickSearch').value='';renderPicker();
+  $('picker').hidden=false;$('pickList').scrollTop=0;
+  const cur=$('pickList').querySelector('[aria-current="true"]');
+  if(cur&&!byId(state.pig).fav)cur.scrollIntoView({block:'center'});
+  if(matchMedia('(pointer:fine)').matches)$('pickSearch').focus({preventScroll:true});
+}
+function closePicker(){$('picker').hidden=true;$('moreColors').focus()}
+$('moreColors').onclick=openPicker;
+$('pickClose').onclick=closePicker;
+$('pickSearch').addEventListener('input',renderPicker);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('picker').hidden)closePicker()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('lightbox').hidden)closeLightbox()});
 $('lbSave').onclick=()=>{
   const p=byId(state.pig);
@@ -718,7 +793,7 @@ $('clearBtn').onclick=()=>{mask.fill(0);adjust()};
   const end=()=>{if(down){down=false;adjust()}};
   cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
 })();
-seg('modeSeg','mode',analyze);seg('brandSeg','brand',()=>{buildPig();computeMixes()});seg('pigSeg','pig',computeMixes);seg('medSeg','med',computeMixes);seg('viewSeg','view',render);
+seg('modeSeg','mode',analyze);(function(){let prev=state.brand;seg('brandSeg','brand',()=>{buildPig(prev);prev=state.brand;computeMixes()})})();seg('pigSeg','pig',()=>{buildPig();computeMixes()});seg('medSeg','med',computeMixes);seg('viewSeg','view',render);
 
 function readFile(f){
   if(!f||!f.type.startsWith('image/')){$('srcLabel').textContent='That file is not an image. Choose a JPG, PNG or HEIC photo.';return}
