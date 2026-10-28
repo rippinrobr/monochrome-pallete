@@ -1,7 +1,7 @@
 {
   "name": "Monochrome Palette",
   "short_name": "Monochrome Palette",
-  "description": "Turn a reference photo into a value map and paint-mixing sheet for one-colour studies.",
+  "description": "Turn a reference photo into a value map and paint-mixing sheet for one-color studies.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

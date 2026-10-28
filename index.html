@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Monochrome Palette</title>
-<meta name="description" content="Turn a reference photo into a value map and paint-mixing sheet for one-colour studies.">
+<meta name="description" content="Turn a reference photo into a value map and paint-mixing sheet for one-color studies.">
 <meta name="theme-color" content="#2c3c96">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
@@ -95,21 +95,6 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .lbstage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto}
 .lbstage canvas{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
 .lbmsg{color:#a2a7ad;font-size:13px;min-height:18px;padding-top:8px}
-.bghead{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.bghead .lbl{font:600 12px/1 var(--body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
-.toggle{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:4px 12px 4px 4px;font:600 13px var(--body);cursor:pointer}
-.toggle .knob{width:34px;height:20px;border-radius:999px;background:var(--sunk);position:relative;box-shadow:inset 0 0 0 1px var(--line)}
-.toggle .knob::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:transform .15s}
-.toggle[aria-checked="true"] .knob{background:var(--accent)}
-.toggle[aria-checked="true"] .knob::after{transform:translateX(14px);background:var(--accent-ink)}
-.toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.bgcolor{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center}
-.bgpick{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
-.chip.big{width:44px;height:44px;border-radius:6px}
-.bgcolorinfo{display:flex;flex-direction:column;gap:2px;min-width:0}
-.vh{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-#bgToolSeg button[aria-pressed="true"][data-v="bg"]{background:#2aa7d6;color:#fff}
-#bgToolSeg button[aria-pressed="true"][data-v="subj"]{background:#ff3d7f;color:#fff}
 .punch{display:flex;flex-direction:column;gap:14px;padding-block:14px;border-block:1px solid var(--line)}
 .punch>.lbl{font:600 12px/1 var(--body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
 .brushrow{display:flex;gap:10px;flex-wrap:wrap}
@@ -157,7 +142,7 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
 <div class="wrap">
   <header>
     <h1>Monochrome Palette</h1>
-    <p class="lede">Load a reference photo. The mixer groups it into a few tones, then tells you how to mix each tone from one colour, Titanium White, and a touch of a darker partner colour for the deepest darks.</p>
+    <p class="lede">Load a reference photo. The mixer groups it into a few tones, then tells you how to mix each tone from one color, Titanium White, and a touch of a darker partner color for the deepest darks.</p>
     <div class="scale" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </header>
 
@@ -170,7 +155,7 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
       </div>
 
       <div class="maps">
-        <figure><canvas class="map" id="grayC"></canvas><figcaption id="grayCap">Photo in greyscale</figcaption></figure>
+        <figure><canvas class="map" id="grayC"></canvas><figcaption id="grayCap">Photo in grayscale</figcaption></figure>
         <figure><button class="mapbtn" id="enlarge" type="button" aria-label="Enlarge the value map"><canvas class="map" id="posterC"></canvas><span class="zoomtag">Tap to enlarge</span></button><figcaption id="posterCap">Value map</figcaption></figure>
       </div>
 
@@ -178,6 +163,50 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
         <span class="lbl">Tone strips · tap a strip to use it for the map and mixing sheet</span>
         <div class="stripwrap" id="stripWrap"><div class="striplbl" id="nearLbl"></div><div class="strip" id="strip"></div></div>
         <div class="stripwrap" id="strip2Wrap"><div class="striplbl" id="compLbl"></div><div class="strip" id="strip2"></div></div>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <div class="rangehead"><label for="nTones">Number of tones</label><output id="nOut">5</output></div>
+          <input type="range" id="nTones" min="3" max="9" value="5">
+          <small>3–5 for a quick block-in, 7–9 for a finished grisaille.</small>
+        </div>
+        <div class="field">
+          <span class="lbl">How tones are chosen</span>
+          <div class="seg" id="modeSeg">
+            <button type="button" data-v="fit" aria-pressed="true">Fit the photo</button>
+            <button type="button" data-v="even" aria-pressed="false">Even steps</button>
+          </div>
+          <small>Fit follows the photo's real tone groups. Even steps spaces them like a value scale.</small>
+        </div>
+        <div class="field">
+          <span class="lbl">Brand</span>
+          <div class="seg" id="brandSeg">
+            <button type="button" data-v="artisan" aria-pressed="true">W&amp;N Artisan</button>
+            <button type="button" data-v="cobra" aria-pressed="false">Cobra</button>
+          </div>
+          <small>Both are water-mixable oils, and they can be mixed together. Light Green is Cobra only.</small>
+        </div>
+        <div class="field">
+          <span class="lbl">Color (from yesterday's set)</span>
+          <div class="seg" id="pigSeg"></div>
+          <small id="pigNote"></small>
+        </div>
+        <div class="field">
+          <span class="lbl">Paint</span>
+          <div class="seg" id="medSeg">
+            <button type="button" data-v="oil" aria-pressed="true">Water-mixable oil</button>
+            <button type="button" data-v="acrylic" aria-pressed="false">Acrylic</button>
+          </div>
+          <small id="medNote"></small>
+        </div>
+        <div class="field">
+          <span class="lbl">Value map shows</span>
+          <div class="seg" id="viewSeg">
+            <button type="button" data-v="paint" aria-pressed="true">Paint color</button>
+            <button type="button" data-v="gray" aria-pressed="false">Gray</button>
+          </div>
+        </div>
       </div>
 
       <div class="punch">
@@ -209,7 +238,7 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
             <button class="btn ghost" id="brushBtn" type="button" aria-pressed="false">Paint area on photo</button>
             <button class="btn ghost" id="clearBtn" type="button">Clear</button>
           </div>
-          <small id="brushHint">Turn this on, then rub over the greyscale photo (a child's face, the subject you want to glow). That area is lifted before the tones are worked out.</small>
+          <small id="brushHint">Turn this on, then rub over the grayscale photo (a child's face, the subject you want to glow). That area is lifted before the tones are worked out.</small>
           <div class="controls">
             <div class="field">
               <div class="rangehead"><label for="lift">How much brighter</label><output id="liftOut">12</output></div>
@@ -219,83 +248,6 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
               <div class="rangehead"><label for="bsize">Brush size</label><output id="bsizeOut">28</output></div>
               <input type="range" id="bsize" min="8" max="80" value="28">
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="punch" id="bgPanel">
-        <div class="bghead">
-          <span class="lbl">Flat background</span>
-          <button class="toggle" id="bgToggle" type="button" role="switch" aria-checked="false"><span class="knob"></span><span id="bgToggleTxt">Off</span></button>
-        </div>
-        <small>Replaces everything behind the subject with one flat colour, so the tones and mixes are worked out for the subject only.</small>
-        <div class="bgcolor">
-          <span class="chip big" id="bgChip"></span>
-          <div class="bgcolorinfo">
-            <b id="bgName">Liquitex Parchment 436</b>
-            <span class="sub" id="bgMeta"></span>
-          </div>
-          <div class="bgpick">
-            <button class="btn ghost" id="bgPreset" type="button">Parchment</button>
-            <label class="btn ghost" for="bgCustom">Other colour</label>
-            <input type="color" id="bgCustom" value="#ddd5be" class="vh">
-          </div>
-        </div>
-        <div class="field">
-          <span class="lbl">Background area</span>
-          <div class="brushrow">
-            <button class="btn" id="bgAuto" type="button">Find subject automatically</button>
-          </div>
-          <small id="bgStatus">Finds the person or object and treats everything else as background. Needs internet the first time.</small>
-          <div class="seg" id="bgToolSeg">
-            <button type="button" data-v="" aria-pressed="true">Brush off</button>
-            <button type="button" data-v="bg" aria-pressed="false">Mark background</button>
-            <button type="button" data-v="subj" aria-pressed="false">Mark subject</button>
-          </div>
-          <small>Fix the edges by rubbing on the greyscale photo. The background shows in blue while you mark. Brush size above applies here too.</small>
-        </div>
-      </div>
-
-      <div class="controls">
-        <div class="field">
-          <div class="rangehead"><label for="nTones">Number of tones</label><output id="nOut">5</output></div>
-          <input type="range" id="nTones" min="3" max="9" value="5">
-          <small>3–5 for a quick block-in, 7–9 for a finished grisaille.</small>
-        </div>
-        <div class="field">
-          <span class="lbl">How tones are chosen</span>
-          <div class="seg" id="modeSeg">
-            <button type="button" data-v="fit" aria-pressed="true">Fit the photo</button>
-            <button type="button" data-v="even" aria-pressed="false">Even steps</button>
-          </div>
-          <small>Fit follows the photo's real tone groups. Even steps spaces them like a value scale.</small>
-        </div>
-        <div class="field">
-          <span class="lbl">Brand</span>
-          <div class="seg" id="brandSeg">
-            <button type="button" data-v="artisan" aria-pressed="true">W&amp;N Artisan</button>
-            <button type="button" data-v="cobra" aria-pressed="false">Cobra</button>
-          </div>
-          <small>Both are water-mixable oils, and they can be mixed together. Light Green is Cobra only.</small>
-        </div>
-        <div class="field">
-          <span class="lbl">Colour (from yesterday's set)</span>
-          <div class="seg" id="pigSeg"></div>
-          <small id="pigNote"></small>
-        </div>
-        <div class="field">
-          <span class="lbl">Paint</span>
-          <div class="seg" id="medSeg">
-            <button type="button" data-v="oil" aria-pressed="true">Water-mixable oil</button>
-            <button type="button" data-v="acrylic" aria-pressed="false">Acrylic</button>
-          </div>
-          <small id="medNote"></small>
-        </div>
-        <div class="field">
-          <span class="lbl">Value map shows</span>
-          <div class="seg" id="viewSeg">
-            <button type="button" data-v="paint" aria-pressed="true">Paint colour</button>
-            <button type="button" data-v="gray" aria-pressed="false">Grey</button>
           </div>
         </div>
       </div>
@@ -348,7 +300,7 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
 
 <script>
 (function(){
-// Yesterday's four colours. Each deepens its darkest tones with its complement from the same set.
+// Yesterday's four colors. Each deepens its darkest tones with its complement from the same set.
 const PALETTES={
  artisan:{brand:'Winsor & Newton Artisan',white:'Titanium White',paints:[
   {id:'blue',label:'Ultramarine',name:'French Ultramarine',code:'PB29',rgb:[0.040,0.030,0.150],s:0.6,near:'pblue',comp:'orange',note:'Warm, violet-leaning blue.'},
@@ -370,10 +322,10 @@ const WHITE={name:'Titanium White',rgb:[0.90,0.90,0.885]};
 const HIGHLIGHT=[255,61,127];
 
 const $=id=>document.getElementById(id);
-const state={bgOn:false,bgColor:'#ddd5be',bgName:'Liquitex Parchment 436',bgTool:'',darks:'near',contrast:'natural',key:'natural',lift:12,brush:false,brushSize:28,brand:'artisan',n:5,mode:'fit',pig:'blue',med:'oil',view:'paint',sel:-1,label:'Example still life'};
-let bgArea=0,W=0,H=0,Lpix=null,Lraw=null,mask=null,bgMask=null,srcImg=null,assign=null,zones=[],srcRGB=null;
+const state={darks:'near',contrast:'natural',key:'natural',lift:12,brush:false,brushSize:28,brand:'artisan',n:5,mode:'fit',pig:'blue',med:'oil',view:'paint',sel:-1,label:'Example still life'};
+let W=0,H=0,Lpix=null,Lraw=null,mask=null,srcImg=null,assign=null,zones=[],srcRGB=null;
 
-// ---------- colour maths ----------
+// ---------- color maths ----------
 const ks=r=>(1-r)*(1-r)/(2*r);
 const rFromKs=k=>1+k-Math.sqrt(k*k+2*k);
 const lumY=c=>0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
@@ -382,7 +334,6 @@ const toSRGB=v=>{v=Math.max(0,Math.min(1,v));return Math.round(255*(v<=0.0031308
 const LfromY=Y=>Y>0.008856?116*Math.cbrt(Y)-16:903.3*Y;
 const YfromL=L=>L>8?Math.pow((L+16)/116,3):L/903.3;
 const hex=c=>'#'+c.map(v=>toSRGB(v).toString(16).padStart(2,'0')).join('');
-const hexToRGB=h=>{h=h.replace('#','');return[0,2,4].map(i=>parseInt(h.substr(i,2),16))};
 const grayHex=L=>{const y=YfromL(L);return hex([y,y,y])};
 const LIN=new Float32Array(256);for(let i=0;i<256;i++)LIN[i]=toLin(i);
 
@@ -421,7 +372,7 @@ function ratioText(z,p){
   const c=z.c;
   if(z.deep>0){
     const b=byId(z.partner),n=nice((1-z.deep)/z.deep);
-    const why=state.darks==='comp'?'The '+b.label.toLowerCase()+' is the complement: it darkens and slightly greys the '+p.label.toLowerCase()+'.':'The '+b.label.toLowerCase()+' darkens the '+p.label.toLowerCase()+' and keeps it in the same colour family.';
+    const why=state.darks==='comp'?'The '+b.label.toLowerCase()+' is the complement: it darkens and slightly grays the '+p.label.toLowerCase()+'.':'The '+b.label.toLowerCase()+' darkens the '+p.label.toLowerCase()+' and keeps it in the same color family.';
     if(n>=40)return{main:p.name+' with a touch of '+b.name,sub:'No white. About '+fmt(n)+' : 1, a knife-tip of '+b.label.toLowerCase()+'. '+why};
     return{main:fmt(n)+' parts '+p.name+' : 1 part '+b.name,sub:'No white. '+why};
   }
@@ -445,12 +396,11 @@ function loadImage(img,label){
   const c=document.createElement('canvas');c.width=W;c.height=H;
   const g=c.getContext('2d');g.drawImage(img,0,0,W,H);
   const d=g.getImageData(0,0,W,H).data;
-  Lraw=new Float32Array(W*H);mask=new Float32Array(W*H);bgMask=new Float32Array(W*H);
+  Lraw=new Float32Array(W*H);mask=new Float32Array(W*H);
   for(let i=0,j=0;i<d.length;i+=4,j++){
     Lraw[j]=LfromY(0.2126*LIN[d[i]]+0.7152*LIN[d[i+1]]+0.0722*LIN[d[i+2]]);
   }
   state.label=label;state.sel=-1;
-  if(typeof bgReset==='function')bgReset();
   $('srcLabel').innerHTML=label==='Example still life'?'<span class="tag">Example image</span> · or drop a photo here':'';
   if(label!=='Example still life')$('srcLabel').textContent=label;
   adjust();
@@ -481,15 +431,10 @@ function renderHi(){
   const g=cv.getContext('2d');g.drawImage(srcImg,0,0,w,h);
   const im=g.getImageData(0,0,w,h),d=im.data;
   const cols=zones.map(z=>state.view==='gray'?(v=>[v,v,v])(toSRGB(YfromL(z.L))):z.mix.map(toSRGB));
-  const kx=W/w,ky=H/h,useBg=bgActive();
-  const bgC=state.view==='gray'?(v=>[v,v,v])(toSRGB(YfromL(LfromY(lumY(hexToRGB(state.bgColor).map(v=>LIN[v])))))):hexToRGB(state.bgColor);
-  const sampleBg=(fx,fy)=>{const x0=Math.max(0,Math.min(W-1,Math.floor(fx))),y0=Math.max(0,Math.min(H-1,Math.floor(fy)));
-    const x1=Math.min(W-1,x0+1),y1=Math.min(H-1,y0+1),tx=Math.max(0,Math.min(1,fx-x0)),ty=Math.max(0,Math.min(1,fy-y0));
-    const t=bgMask[y0*W+x0]*(1-tx)+bgMask[y0*W+x1]*tx,b=bgMask[y1*W+x0]*(1-tx)+bgMask[y1*W+x1]*tx;return t*(1-ty)+b*ty};
+  const kx=W/w,ky=H/h;
   for(let y=0,i=0;y<h;y++){
     const row=Math.min(H-1,Math.floor(y*ky))*W;
     for(let x=0;x<w;x++,i+=4){
-      if(useBg&&sampleBg((x+.5)*kx-.5,(y+.5)*ky-.5)>=0.5){d[i]=bgC[0];d[i+1]=bgC[1];d[i+2]=bgC[2];d[i+3]=255;continue}
       const L=LfromY(0.2126*LIN[d[i]]+0.7152*LIN[d[i+1]]+0.0722*LIN[d[i+2]]);
       const a=adjL(L,mask[row+Math.min(W-1,Math.floor(x*kx))]);
       let bi=0,bd=1e9;for(let j=0;j<zones.length;j++){const e=Math.abs(a-zones[j].L);if(e<bd){bd=e;bi=j}}
@@ -499,18 +444,11 @@ function renderHi(){
   g.putImageData(im,0,0);return cv;
 }
 
-const BGZ=255;
-function bgCount(){if(!bgMask)return 0;let n=0;for(let i=0;i<bgMask.length;i++)if(bgMask[i]>=0.5)n++;return n}
-function bgActive(){return state.bgOn&&bgMask&&bgCount()>0&&bgCount()<bgMask.length}
 function analyze(){
   const hist=new Float64Array(101);
-  const useBg=bgActive();
-  const isBg=i=>useBg&&bgMask[i]>=0.5;
-  let subj=0;
-  for(let i=0;i<Lpix.length;i++){if(isBg(i))continue;hist[Math.max(0,Math.min(100,Math.round(Lpix[i])))]++;subj++}
+  for(let i=0;i<Lpix.length;i++)hist[Math.max(0,Math.min(100,Math.round(Lpix[i])))]++;
   const total=Lpix.length;
-  bgArea=useBg?(total-subj)/total:0;
-  const pct=q=>{let a=0;for(let i=0;i<=100;i++){a+=hist[i];if(a>=q*subj)return i}return 100};
+  const pct=q=>{let a=0;for(let i=0;i<=100;i++){a+=hist[i];if(a>=q*total)return i}return 100};
   const k=state.n;let cents=[];
   if(state.mode==='even'){
     const lo=pct(0.01),hi=Math.max(lo+1,pct(0.99)),w=(hi-lo)/k;
@@ -530,13 +468,13 @@ function analyze(){
   cents.sort((a,b)=>a-b);
   // assign pixels
   const a=new Uint8Array(total),cnt=new Float64Array(k),sum=new Float64Array(k);
-  for(let i=0;i<total;i++){if(isBg(i)){a[i]=BGZ;continue}const L=Lpix[i];let bi=0,bd=1e9;
+  for(let i=0;i<total;i++){const L=Lpix[i];let bi=0,bd=1e9;
     for(let j=0;j<k;j++){const dd=Math.abs(L-cents[j]);if(dd<bd){bd=dd;bi=j}}
     a[i]=bi;cnt[bi]++;sum[bi]+=L;}
   const map=new Int16Array(k).fill(-1);zones=[];
   for(let j=0;j<k;j++)if(cnt[j]>0){map[j]=zones.length;
     zones.push({L:state.mode==='even'?cents[j]:sum[j]/cnt[j],area:cnt[j]/total});}
-  for(let i=0;i<total;i++)if(a[i]!==BGZ)a[i]=map[a[i]];
+  for(let i=0;i<total;i++)a[i]=map[a[i]];
   assign=a;
   if(state.sel>=zones.length)state.sel=-1;
   computeMixes();
@@ -564,16 +502,13 @@ function computeMixes(){
 // ---------- rendering ----------
 function render(){
   const p=PIGMENTS.find(x=>x.id===state.pig);
-  // greyscale map
+  // grayscale map
   const gc=$('grayC'),pc=$('posterC');
   [gc,pc].forEach(c=>{c.width=W;c.height=H});
   const gctx=gc.getContext('2d'),pctx=pc.getContext('2d');
   const gi=gctx.createImageData(W,H),pi=pctx.createImageData(W,H);
   const gLUT=new Uint8ClampedArray(1001);
   for(let i=0;i<=1000;i++){const y=YfromL(i/10);gLUT[i]=toSRGB(y)}
-  const bgRGB=hexToRGB(state.bgColor),bgL=LfromY(lumY(bgRGB.map(v=>LIN[v])));
-  const bgGrey=toSRGB(YfromL(bgL));
-  const bgPaint=state.view==='gray'?[bgGrey,bgGrey,bgGrey]:bgRGB;
   const zc=zones.map(z=>{
     if(state.view==='gray'){const v=toSRGB(YfromL(z.L));return[v,v,v]}
     return z.mix.map(toSRGB);
@@ -581,10 +516,8 @@ function render(){
   for(let i=0,j=0;j<Lpix.length;i+=4,j++){
     const v=gLUT[Math.max(0,Math.min(1000,Math.round(Lpix[j]*10)))];
     gi.data[i]=gi.data[i+1]=gi.data[i+2]=v;gi.data[i+3]=255;
-    if(state.bgTool&&bgMask[j]>=0.5){gi.data[i]=v*.55;gi.data[i+1]=v*.55+167*.45;gi.data[i+2]=v*.55+214*.45}
-    else if(!state.bgTool&&assign[j]===BGZ){gi.data[i]=gi.data[i+1]=gi.data[i+2]=bgGrey}
     if(state.brush&&mask[j]>0){const a=0.45*mask[j];gi.data[i]=v+(255-v)*a;gi.data[i+1]=v+(194-v)*a;gi.data[i+2]=v+(26-v)*a}
-    const z=assign[j];const col=z===BGZ?bgPaint:(state.sel===z)?HIGHLIGHT:zc[z];
+    const z=assign[j];const col=(state.sel===z)?HIGHLIGHT:zc[z];
     pi.data[i]=col[0];pi.data[i+1]=col[1];pi.data[i+2]=col[2];pi.data[i+3]=255;
   }
   gctx.putImageData(gi,0,0);pctx.putImageData(pi,0,0);
@@ -615,25 +548,21 @@ function render(){
   $('sheetMeta').textContent=state.label+' · '+zones.length+' tones · values '+vmin+'–'+vmax+' on a 0–10 scale · '+(state.med==='oil'?PALETTES[state.brand].brand+' water-mixable oil':'acrylic')+
     ' · darks: '+(state.darks==='comp'?'complement':'same family')+
     (state.contrast!=='natural'?' · '+state.contrast+' contrast':'')+(state.key!=='natural'?' · '+state.key+' key':'')+
-    (mask&&mask.some(v=>v>0)&&state.lift>0?' · one area brightened':'')+(bgActive()?' · flat '+state.bgName+' background':'');
+    (mask&&mask.some(v=>v>0)&&state.lift>0?' · one area brightened':'');
   $('pigNote').textContent=p.note;
   $('medNote').textContent=state.med==='acrylic'
     ?'Acrylic dries a little darker, so these wet mixes are set slightly lighter than the target.'
-    :'Water-mixable oils dry close to their wet colour, so mixes match the target directly.';
+    :'Water-mixable oils dry close to their wet color, so mixes match the target directly.';
   $('lgT').style.background='#888';$('lgM').style.background=hex(mix(0.12,p));
 
   const b=byId(p[state.darks]);
   const deepCount=zones.filter(z=>z.deep>0).length;
   const pal=PALETTES[state.brand];
   const paints=[
-    {chip:hex(mix(1,p)),name:pal.brand+' '+p.name+' ('+p.code+')',desc:'Your main colour. The light and middle tones are this plus white.'},
+    {chip:hex(mix(1,p)),name:pal.brand+' '+p.name+' ('+p.code+')',desc:'Your main color. The light and middle tones are this plus white.'},
     {chip:hex(WHITE.rgb),name:pal.brand+' '+pal.white,desc:'Opaque, strong white. The light tones are mostly white, so have plenty.'}
   ];
-  if(deepCount)paints.push({chip:hex(mix(1,b)),name:pal.brand+' '+b.name+' ('+b.label.toLowerCase()+', small amount)',desc:deepCount+' dark tone'+(deepCount>1?'s are':' is')+' darker than '+p.name+' can reach. '+(state.darks==='comp'?b.label+' is its complement, so it darkens and slightly greys it for quieter, richer shadows.':b.label+' darkens it while keeping the painting in one colour family.')});
-  if(bgActive()){
-    const bL=LfromY(lumY(hexToRGB(state.bgColor).map(v=>LIN[v])));
-    paints.push({chip:state.bgColor,name:state.bgName+' (background)',desc:'Paint the background flat, straight from the tube. Value about '+(bL/10).toFixed(1)+', '+Math.round(bgArea*100)+'% of the picture.'+(/Liquitex/.test(state.bgName)&&state.med==='oil'?' It is an acrylic: lay it in first and let it dry, then paint the oil over it. Never put acrylic on top of oil.':'')});
-  }
+  if(deepCount)paints.push({chip:hex(mix(1,b)),name:pal.brand+' '+b.name+' ('+b.label.toLowerCase()+', small amount)',desc:deepCount+' dark tone'+(deepCount>1?'s are':' is')+' darker than '+p.name+' can reach. '+(state.darks==='comp'?b.label+' is its complement, so it darkens and slightly grays it for quieter, richer shadows.':b.label+' darkens it while keeping the painting in one color family.')});
   paints.push(state.med==='oil'
     ?{chip:'transparent',name:'Water-mixable linseed oil or medium',desc:'Optional. A drop loosens stiff mixes. Clean brushes with water.'}
     :{chip:'transparent',name:'Acrylic retarder or slow-drying medium',desc:'Optional. Keeps your tone puddles workable longer on the palette.'});
@@ -649,7 +578,7 @@ function render(){
     el.innerHTML='<div class="sw"><div style="background:'+grayHex(z.L)+'"></div><div style="background:'+hex(z.mix)+'"></div></div>'+
       '<div style="min-width:0"><div class="rowtop"><strong>Tone '+(i+1)+'</strong><span>value '+(z.L/10).toFixed(1)+(label?' · '+label:'')+' · '+Math.round(z.area*100)+'% of image</span></div>'+
       '<div class="ratio">'+r.main+'</div><div class="sub">'+r.sub+'</div>'+
-      (z.short?'<div class="flag">This is as dark as these two paints go. The real tone is a bit darker; compare against neighbouring tones instead.</div>':'')+'</div>';
+      (z.short?'<div class="flag">This is as dark as these two paints go. The real tone is a bit darker; compare against neighboring tones instead.</div>':'')+'</div>';
     el.onclick=()=>select(i);
     el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(i)}};
     rows.appendChild(el);
@@ -659,12 +588,12 @@ function render(){
     'Mix every tone before you start painting, in separate puddles, lightest to darkest. Make more of the tones with the largest share of the image.',
     'For the light tones, add the '+p.label.toLowerCase()+' into the white a little at a time. '+p.name+' is far stronger than white, so going the other way wastes paint.',
     'For the darkest tones, add the '+b.label.toLowerCase()+' into the '+p.label.toLowerCase()+' with the knife tip, a little at a time. Too much shifts the hue.',
-    'Check each puddle by dabbing it on a scrap card and holding it against the same area of a greyscale print of your photo. Squint to compare.',
-    state.med==='acrylic'?'Let a test dab dry for a minute before judging it. Acrylic darkens as it dries.':'Keep the oil content low in early layers (fat over lean), especially if you will paint colour over this study later.',
+    'Check each puddle by dabbing it on a scrap card and holding it against the same area of a grayscale print of your photo. Squint to compare.',
+    state.med==='acrylic'?'Let a test dab dry for a minute before judging it. Acrylic darkens as it dries.':'Keep the oil content low in early layers (fat over lean), especially if you will paint color over this study later.',
     'Paint in tone order: block in the darkest shapes first, then work up to the lights.'
   ];
   if(state.contrast==='punchy'||state.contrast==='bold'||state.key==='brighter'||(mask&&mask.some(v=>v>0)))
-    tips.push('For extra colour punch, keep the mixes with the least white (the middle tones) in your focal area. White makes a colour paler as well as lighter, so the strongest colour sits in the middle values.');
+    tips.push('For extra color punch, keep the mixes with the least white (the middle tones) in your focal area. White makes a color paler as well as lighter, so the strongest color sits in the middle values.');
   $('tips').innerHTML=tips.map(t=>'<li>'+t+'</li>').join('');
 }
 
@@ -722,7 +651,7 @@ function openLightbox(){
   hiCanvas=renderHi();
   const lc=$('lbCanvas');lc.width=hiCanvas.width;lc.height=hiCanvas.height;lc.getContext('2d').drawImage(hiCanvas,0,0);
   const p=byId(state.pig);
-  $('lbTitle').textContent=p.name+' · '+zones.length+' tones'+(state.view==='gray'?' · grey':'');
+  $('lbTitle').textContent=p.name+' · '+zones.length+' tones'+(state.view==='gray'?' · gray':'');
   $('lbMsg').textContent='';
   $('lightbox').hidden=false;$('lbClose').focus();
 }
@@ -753,20 +682,11 @@ $('lift').addEventListener('input',e=>{state.lift=+e.target.value;$('liftOut').t
 $('lift').addEventListener('change',adjust);
 $('bsize').addEventListener('input',e=>{state.brushSize=+e.target.value;$('bsizeOut').textContent=state.brushSize});
 function setBrush(on){
-  if(on)setBgTool('');
   state.brush=on;$('brushBtn').setAttribute('aria-pressed',on);
   $('brushBtn').textContent=on?'Done painting':'Paint area on photo';
   $('grayC').classList.toggle('brushing',on);
-  $('grayCap').textContent=on?'Rub over the area to brighten':'Photo in greyscale';
+  $('grayCap').textContent=on?'Rub over the area to brighten':'Photo in grayscale';
   render();
-}
-function setBgTool(t){
-  if(t&&state.brush){state.brush=false;$('brushBtn').setAttribute('aria-pressed',false);$('brushBtn').textContent='Paint area on photo'}
-  state.bgTool=t;
-  $('bgToolSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===t?'true':'false'));
-  $('grayC').classList.toggle('brushing',!!t||state.brush);
-  $('grayCap').textContent=t==='bg'?'Rub over areas that are background':t==='subj'?'Rub over areas that belong to the subject':'Photo in greyscale';
-  if(t&&!state.bgOn)setBgOn(true);else render();
 }
 $('brushBtn').onclick=()=>setBrush(!state.brush);
 $('clearBtn').onclick=()=>{mask.fill(0);adjust()};
@@ -779,68 +699,16 @@ $('clearBtn').onclick=()=>{mask.fill(0);adjust()};
     const y0=Math.max(0,Math.floor(cy-rad)),y1=Math.min(H-1,Math.ceil(cy+rad));
     for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
       const d=Math.hypot(x-cx,y-cy)/rad;if(d>=1)continue;
-      const m=1-d*d,k=y*W+x;
-      if(state.bgTool==='bg')bgMask[k]=1;
-      else if(state.bgTool==='subj')bgMask[k]=0;
-      else if(m>mask[k])mask[k]=m;
+      const m=1-d*d,k=y*W+x;if(m>mask[k])mask[k]=m;
     }
-    const g=cv.getContext('2d');
-    g.fillStyle=state.bgTool==='bg'?'rgba(42,167,214,.35)':state.bgTool==='subj'?'rgba(255,61,127,.3)':'rgba(255,194,26,.25)';
+    const g=cv.getContext('2d');g.fillStyle='rgba(255,194,26,.25)';
     g.beginPath();g.arc(cx,cy,rad,0,Math.PI*2);g.fill();
   }
-  cv.addEventListener('pointerdown',e=>{if(!state.brush&&!state.bgTool)return;down=true;cv.setPointerCapture(e.pointerId);stamp(e);e.preventDefault()});
+  cv.addEventListener('pointerdown',e=>{if(!state.brush)return;down=true;cv.setPointerCapture(e.pointerId);stamp(e);e.preventDefault()});
   cv.addEventListener('pointermove',e=>{if(down)stamp(e)});
-  const end=()=>{if(down){down=false;if(state.bgTool){bgUI();analyze()}else adjust()}};
+  const end=()=>{if(down){down=false;adjust()}};
   cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
 })();
-
-// ---------- flat background ----------
-const PARCHMENT={color:'#ddd5be',name:'Liquitex Parchment 436'};
-let bgDetected=false,bgBusy=false;
-function bgReset(){bgDetected=false;if($('bgStatus'))$('bgStatus').textContent='Finds the person or object and treats everything else as background. Needs internet the first time.';bgUI()}
-function bgUI(){
-  $('bgToggle').setAttribute('aria-checked',state.bgOn);$('bgToggleTxt').textContent=state.bgOn?'On':'Off';
-  $('bgChip').style.background=state.bgColor;$('bgName').textContent=state.bgName;
-  const L=LfromY(lumY(hexToRGB(state.bgColor).map(v=>LIN[v])));
-  const n=bgCount();
-  $('bgMeta').textContent='Value '+(L/10).toFixed(1)+(n?' · '+Math.round(n/bgMask.length*100)+'% of the picture marked as background':' · no background marked yet');
-  $('bgPreset').setAttribute('aria-pressed',state.bgColor===PARCHMENT.color);
-}
-function setBgOn(on){
-  state.bgOn=on;bgUI();
-  if(on&&!bgCount()&&!bgBusy)$('bgStatus').textContent='Now find the subject automatically, or use Mark background to brush it in.';
-  analyze();
-}
-$('bgToggle').onclick=()=>setBgOn(!state.bgOn);
-$('bgPreset').onclick=()=>{state.bgColor=PARCHMENT.color;state.bgName=PARCHMENT.name;$('bgCustom').value=PARCHMENT.color;bgUI();render()};
-$('bgCustom').addEventListener('input',e=>{state.bgColor=e.target.value;state.bgName='Custom colour '+e.target.value.toUpperCase();bgUI();render()});
-$('bgToolSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setBgTool(b.dataset.v)});
-
-let bgLib=null;
-$('bgAuto').onclick=async()=>{
-  if(bgBusy)return;bgBusy=true;$('bgAuto').disabled=true;
-  const st=$('bgStatus');
-  try{
-    st.textContent='Loading the subject finder. The first time downloads about 40 MB, so this can take a minute.';
-    if(!bgLib)bgLib=await import('./vendor/bg-removal.js');
-    // Work on the same small copy the tones use, so the mask lines up exactly.
-    const c=document.createElement('canvas');c.width=W;c.height=H;c.getContext('2d').drawImage(srcImg,0,0,W,H);
-    const blob=await new Promise(r=>c.toBlob(r,'image/png'));
-    const out=await bgLib.removeBackground(blob,{model:'isnet_quint8',output:{format:'image/png'},
-      progress:(key,cur,tot)=>{if(tot)st.textContent='Downloading the subject finder… '+Math.round(cur/tot*100)+'%'}});
-    st.textContent='Finding the subject…';
-    const bmp=await createImageBitmap(out);
-    const m=document.createElement('canvas');m.width=W;m.height=H;const mg=m.getContext('2d');mg.drawImage(bmp,0,0,W,H);
-    const a=mg.getImageData(0,0,W,H).data;
-    for(let i=0,j=0;j<bgMask.length;i+=4,j++)bgMask[j]=1-a[i+3]/255;
-    bgDetected=true;
-    const pc=Math.round(bgCount()/bgMask.length*100);
-    st.textContent=pc>=99?'No clear subject found. Use Mark background and Mark subject to brush it in.':'Subject found. '+pc+'% of the picture is background. Touch up the edges with the brush if needed.';
-    state.bgOn=true;bgUI();analyze();
-  }catch(err){
-    st.textContent='The subject finder could not run here ('+((err&&err.message)||'unknown error').slice(0,80)+'). Use Mark background to brush the background in instead.';
-  }finally{bgBusy=false;$('bgAuto').disabled=false}
-};
 seg('modeSeg','mode',analyze);seg('brandSeg','brand',()=>{buildPig();computeMixes()});seg('pigSeg','pig',computeMixes);seg('medSeg','med',computeMixes);seg('viewSeg','view',render);
 
 function readFile(f){

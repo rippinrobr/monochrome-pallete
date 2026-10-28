@@ -1,6 +1,6 @@
 // Monochrome Palette service worker: keeps the app working offline in the studio.
 // Bump VERSION whenever index.html changes so phones pick up the new version.
-const VERSION = 'monochrome-palette-v3';
+const VERSION = 'monochrome-palette-v4';
 const CORE = [
   './',
   './index.html',
@@ -17,7 +17,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION && k !== 'bg-model').map(k => caches.delete(k))))
+    caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
   );
   self.clients.claim();
 });
@@ -26,20 +26,6 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-
-  // Subject-finder model files: cache-first after the first download, so it works offline later.
-  if (url.hostname === 'staticimgly.com') {
-    event.respondWith(
-      caches.open('bg-model').then(async cache => {
-        const hit = await cache.match(req);
-        if (hit) return hit;
-        const res = await fetch(req);
-        if (res.ok) cache.put(req, res.clone());
-        return res;
-      })
-    );
-    return;
-  }
 
   // Google Fonts: cache-first, so typography works offline after the first visit.
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {

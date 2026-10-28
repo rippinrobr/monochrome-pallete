@@ -1,14 +1,13 @@
 # Monochrome Palette
 
-A small web app for planning one-colour (monochrome) paintings in water-mixable oil or acrylic.
+A small web app for planning one-color (monochrome) paintings in water-mixable oil or acrylic.
 
 Load a reference photo and it will:
 
 - group the photo into 3–9 values and show them as a value map
-- give a mixing ratio for each tone: your chosen colour plus Titanium White, with a darker partner paint for the deepest tones
-- compare two ways of mixing the darks: a same-family colour (top strip) or the complement (bottom strip)
+- give a mixing ratio for each tone: your chosen color plus Titanium White, with a darker partner paint for the deepest tones
+- compare two ways of mixing the darks: a same-family color (top strip) or the complement (bottom strip)
 - let you add punch: contrast, overall brightness, and a brush to brighten one area
-- replace the background with one flat colour (Liquitex Parchment 436 to start, or any colour), found automatically or brushed in, so tones and mixes are worked out for the subject only
 - show the value map full screen and save it as a PNG
 
 Paints are set up for **Winsor & Newton Artisan** and **Cobra** water-mixable oils: Ultramarine, Phthalo Blue, Phthalo Green, Light Green (Cobra), Orange and Red.
