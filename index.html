@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Value Mixer</title>
+<meta name="description" content="Turn a reference photo into a value map and paint-mixing sheet for one-colour studies.">
+<meta name="theme-color" content="#2c3c96">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Value Mixer">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a studio worksheet. Photo, controls and value maps on the left; the mixing sheet on the right. Stacks to one column on phones. */
+:root{
+  --bg:#e9ebe9; --surface:#f7f8f6; --sunk:#dfe2e0; --fg:#1b1d20; --muted:#596067; --line:#c9cecb;
+  --accent:#2c3c96; --accent-ink:#ffffff; --warn:#9a4a12;
+  --display:'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif;
+  --body:'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141518; --surface:#1d1f23; --sunk:#26292e; --fg:#e8e7e3; --muted:#a2a7ad; --line:#363a40;
+  --accent:#9aa8f2; --accent-ink:#11131a; --warn:#f0a56b; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#141518; --surface:#1d1f23; --sunk:#26292e; --fg:#e8e7e3; --muted:#a2a7ad; --line:#363a40;
+  --accent:#9aa8f2; --accent-ink:#11131a; --warn:#f0a56b; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-direction:column;gap:6px}
+h1{font:700 clamp(28px,5vw,42px)/1.05 var(--display);letter-spacing:-.01em;margin:0;text-wrap:balance}
+.lede{margin:0;color:var(--muted);max-width:62ch}
+.scale{display:grid;grid-template-columns:repeat(11,1fr);height:10px;border-radius:2px;overflow:hidden;max-width:420px;margin-top:6px}
+.scale span:nth-child(1){background:#1a1a1a}.scale span:nth-child(2){background:#2e2e2e}.scale span:nth-child(3){background:#474747}
+.scale span:nth-child(4){background:#5e5e5e}.scale span:nth-child(5){background:#777}.scale span:nth-child(6){background:#919191}
+.scale span:nth-child(7){background:#ababab}.scale span:nth-child(8){background:#c6c6c6}.scale span:nth-child(9){background:#dedede}
+.scale span:nth-child(10){background:#efefef}.scale span:nth-child(11){background:#fafafa}
+
+.grid{display:grid;grid-template-columns:1fr;gap:20px}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:start}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:16px;min-width:0}
+h2{font:600 12px/1 var(--body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0}
+h3{font:700 22px/1.15 var(--display);margin:0;text-wrap:balance}
+
+.drop{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.btn{font:600 14px/1 var(--body);border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
+  padding:11px 16px;border-radius:4px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:focus-visible,.seg button:focus-visible,select:focus-visible,input:focus-visible,.row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:13px;color:var(--muted)}
+.tag{font:500 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--warn)}
+
+.maps{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+figure{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+figcaption{font:500 12px/1.3 var(--mono);color:var(--muted)}
+canvas.map{width:100%;height:auto;display:block;border-radius:3px;background:var(--sunk)}
+
+.controls{display:grid;grid-template-columns:1fr;gap:14px}
+@media (min-width:520px){.controls{grid-template-columns:1fr 1fr}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.field .lbl{font:600 13px/1.2 var(--body)}
+.field small{color:var(--muted);font-size:12.5px;line-height:1.4}
+select{font:15px var(--body);padding:9px 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.rangehead{display:flex;justify-content:space-between;align-items:baseline}
+.rangehead output{font:500 14px var(--mono)}
+.seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{flex:1;font:500 13px/1.2 var(--body);padding:9px 6px;border:0;background:var(--bg);color:var(--fg);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.stripwrap{display:flex;flex-direction:column;gap:5px;padding:6px;border-radius:5px;border:1px solid transparent}
+.stripwrap.on{border-color:var(--accent)}
+.striplbl{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+.striplbl b{color:var(--fg);font-weight:600}
+.inuse{font:500 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em;background:var(--accent);color:var(--accent-ink);padding:3px 6px;border-radius:3px}
+.mapbtn{position:relative;display:block;padding:0;border:0;background:none;cursor:zoom-in;width:100%}
+.mapbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.zoomtag{position:absolute;right:6px;bottom:6px;font:500 11px/1 var(--mono);background:rgba(20,21,24,.72);color:#fff;padding:4px 6px;border-radius:3px}
+.lightbox{position:fixed;inset:0;z-index:50;background:#0e0f11;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 12px) max(16px,env(safe-area-inset-left,0px))}
+.lbbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:10px}
+.lbtitle{color:#e8e7e3;font:600 14px var(--body)}
+.lbactions{display:flex;gap:8px}
+.lightbox .btn{background:#9aa8f2;border-color:#9aa8f2;color:#11131a}
+.lightbox .lbclose{background:transparent;color:#e8e7e3;border-color:#555}
+.lbstage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto}
+.lbstage canvas{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
+.lbmsg{color:#a2a7ad;font-size:13px;min-height:18px;padding-top:8px}
+.punch{display:flex;flex-direction:column;gap:14px;padding-block:14px;border-block:1px solid var(--line)}
+.punch>.lbl{font:600 12px/1 var(--body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.brushrow{display:flex;gap:10px;flex-wrap:wrap}
+.btn.ghost[aria-pressed="true"]{background:#ffc21a;border-color:#ffc21a;color:#1b1d20}
+canvas.brushing{cursor:crosshair;touch-action:none;outline:2px solid #ffc21a;outline-offset:2px}
+#pigSeg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line)}
+#pigSeg button{border-left:0;padding:10px 4px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:0 0 0 1px var(--line)}
+
+.strip{display:flex;height:54px;border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.strip div{flex:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;font:500 12px var(--mono);cursor:pointer}
+
+.sheethead{display:flex;flex-direction:column;gap:4px}
+.meta{font:400 13px/1.4 var(--mono);color:var(--muted)}
+.paints{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.paints li{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start}
+.chip{width:28px;height:28px;border-radius:50%;border:1px solid var(--line)}
+.paints b{font-weight:600}
+.paints p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
+
+.rows{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:3px}
+.row:hover{background:var(--sunk)}
+.row.sel{background:var(--sunk);box-shadow:inset 3px 0 0 #ff3d7f}
+.sw{display:grid;grid-template-rows:1fr 1fr;width:56px;height:56px;border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.rowtop{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.rowtop strong{font:700 17px var(--display)}
+.rowtop span{font:400 12.5px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.ratio{font:600 15px/1.35 var(--body);margin-top:2px}
+.sub{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.flag{font-size:13px;color:var(--warn);margin-top:2px}
+.legend{display:flex;gap:14px;font:12px var(--mono);color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border:1px solid var(--line);vertical-align:-1px;margin-right:5px}
+
+.tips{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;max-width:65ch}
+.foot{font-size:12.5px;color:var(--muted);max-width:70ch}
+.copyrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Monochrome Value Mixer</h1>
+    <p class="lede">Load a reference photo. The mixer groups it into a few tones, then tells you how to mix each tone from one colour, Titanium White, and a touch of a darker partner colour for the deepest darks.</p>
+    <div class="scale" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Photo and settings">
+      <div class="drop" id="drop">
+        <button class="btn" id="pick" type="button">Choose a photo</button>
+        <input type="file" id="file" accept="image/*" hidden>
+        <span class="hint" id="srcLabel"><span class="tag">Example image</span> · or drop a photo here</span>
+      </div>
+
+      <div class="maps">
+        <figure><canvas class="map" id="grayC"></canvas><figcaption id="grayCap">Photo in greyscale</figcaption></figure>
+        <figure><button class="mapbtn" id="enlarge" type="button" aria-label="Enlarge the value map"><canvas class="map" id="posterC"></canvas><span class="zoomtag">Tap to enlarge</span></button><figcaption id="posterCap">Value map</figcaption></figure>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Tone strips · tap a strip to use it for the map and mixing sheet</span>
+        <div class="stripwrap" id="stripWrap"><div class="striplbl" id="nearLbl"></div><div class="strip" id="strip"></div></div>
+        <div class="stripwrap" id="strip2Wrap"><div class="striplbl" id="compLbl"></div><div class="strip" id="strip2"></div></div>
+      </div>
+
+      <div class="punch">
+        <span class="lbl">Punch</span>
+        <div class="controls">
+          <div class="field">
+            <span class="lbl">Contrast</span>
+            <div class="seg" id="contrastSeg">
+              <button type="button" data-v="soft" aria-pressed="false">Soft</button>
+              <button type="button" data-v="natural" aria-pressed="true">Natural</button>
+              <button type="button" data-v="punchy" aria-pressed="false">Punchy</button>
+              <button type="button" data-v="bold" aria-pressed="false">Bold</button>
+            </div>
+            <small>Punchy pushes darks darker and lights lighter, so tones separate more.</small>
+          </div>
+          <div class="field">
+            <span class="lbl">Key (overall brightness)</span>
+            <div class="seg" id="keySeg">
+              <button type="button" data-v="darker" aria-pressed="false">Darker</button>
+              <button type="button" data-v="natural" aria-pressed="true">Natural</button>
+              <button type="button" data-v="brighter" aria-pressed="false">Brighter</button>
+            </div>
+            <small>Brighter moves the whole picture up the scale for an airy, high-key look.</small>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl">Brighten one area</span>
+          <div class="brushrow">
+            <button class="btn ghost" id="brushBtn" type="button" aria-pressed="false">Paint area on photo</button>
+            <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+          </div>
+          <small id="brushHint">Turn this on, then rub over the greyscale photo (a child's face, the subject you want to glow). That area is lifted before the tones are worked out.</small>
+          <div class="controls">
+            <div class="field">
+              <div class="rangehead"><label for="lift">How much brighter</label><output id="liftOut">12</output></div>
+              <input type="range" id="lift" min="0" max="20" value="12">
+            </div>
+            <div class="field">
+              <div class="rangehead"><label for="bsize">Brush size</label><output id="bsizeOut">28</output></div>
+              <input type="range" id="bsize" min="8" max="80" value="28">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <div class="rangehead"><label for="nTones">Number of tones</label><output id="nOut">5</output></div>
+          <input type="range" id="nTones" min="3" max="9" value="5">
+          <small>3–5 for a quick block-in, 7–9 for a finished grisaille.</small>
+        </div>
+        <div class="field">
+          <span class="lbl">How tones are chosen</span>
+          <div class="seg" id="modeSeg">
+            <button type="button" data-v="fit" aria-pressed="true">Fit the photo</button>
+            <button type="button" data-v="even" aria-pressed="false">Even steps</button>
+          </div>
+          <small>Fit follows the photo's real tone groups. Even steps spaces them like a value scale.</small>
+        </div>
+        <div class="field">
+          <span class="lbl">Brand</span>
+          <div class="seg" id="brandSeg">
+            <button type="button" data-v="artisan" aria-pressed="true">W&amp;N Artisan</button>
+            <button type="button" data-v="cobra" aria-pressed="false">Cobra</button>
+          </div>
+          <small>Both are water-mixable oils, and they can be mixed together. Light Green is Cobra only.</small>
+        </div>
+        <div class="field">
+          <span class="lbl">Colour (from yesterday's set)</span>
+          <div class="seg" id="pigSeg"></div>
+          <small id="pigNote"></small>
+        </div>
+        <div class="field">
+          <span class="lbl">Paint</span>
+          <div class="seg" id="medSeg">
+            <button type="button" data-v="oil" aria-pressed="true">Water-mixable oil</button>
+            <button type="button" data-v="acrylic" aria-pressed="false">Acrylic</button>
+          </div>
+          <small id="medNote"></small>
+        </div>
+        <div class="field">
+          <span class="lbl">Value map shows</span>
+          <div class="seg" id="viewSeg">
+            <button type="button" data-v="paint" aria-pressed="true">Paint colour</button>
+            <button type="button" data-v="gray" aria-pressed="false">Grey</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Mixing sheet">
+      <div class="sheethead">
+        <h2>Mixing sheet</h2>
+        <h3 id="sheetTitle">Ultramarine Blue value study</h3>
+        <div class="meta" id="sheetMeta"></div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Paints you need</span>
+        <ul class="paints" id="paints"></ul>
+      </div>
+
+      <div class="field">
+        <div class="legend"><span><i id="lgT"></i>top: target tone</span><span><i id="lgM"></i>bottom: predicted mix</span></div>
+        <div class="rows" id="rows"></div>
+      </div>
+
+      <div class="field">
+        <span class="lbl">Working tips</span>
+        <ol class="tips" id="tips"></ol>
+      </div>
+
+      <div class="copyrow">
+        <button class="btn ghost" id="copy" type="button">Copy mixing sheet as text</button>
+        <span class="hint" id="copyMsg" role="status"></span>
+      </div>
+      <textarea id="fallback" hidden readonly aria-label="Mixing sheet text"></textarea>
+
+      <p class="foot">Ratios are estimates from a paint-mixing model (Kubelka–Munk) using typical pigment data. Brands vary in tinting strength, so mix the first tone, dab it on a card next to the matching patch of your printed reference, and adjust. Parts are by volume, measured with the palette knife.</p>
+    </section>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Enlarged value map">
+  <div class="lbbar">
+    <span id="lbTitle" class="lbtitle">Value map</span>
+    <div class="lbactions">
+      <button class="btn" id="lbSave" type="button">Save image</button>
+      <button class="btn ghost lbclose" id="lbClose" type="button">Close</button>
+    </div>
+  </div>
+  <div class="lbstage"><canvas id="lbCanvas"></canvas></div>
+  <div class="lbmsg" id="lbMsg" role="status"></div>
+</div>
+
+<script>
+(function(){
+// Yesterday's four colours. Each deepens its darkest tones with its complement from the same set.
+const PALETTES={
+ artisan:{brand:'Winsor & Newton Artisan',white:'Titanium White',paints:[
+  {id:'blue',label:'Ultramarine',name:'French Ultramarine',code:'PB29',rgb:[0.040,0.030,0.150],s:0.6,near:'pblue',comp:'orange',note:'Warm, violet-leaning blue.'},
+  {id:'pblue',label:'Phthalo Blue',name:'Phthalo Blue (Red Shade)',code:'PB15',rgb:[0.012,0.022,0.065],s:1.8,near:'blue',comp:'orange',note:'Cool, intense blue and very strong. Its tints are the brightest, cleanest blues in the set. Add it to white a speck at a time.'},
+  {id:'green',label:'Phthalo Green',name:'Phthalo Green (Blue Shade)',code:'PG7',rgb:[0.012,0.060,0.045],s:1.6,near:'pblue',comp:'red',note:'Extremely strong. Tiny amounts tint a lot of white, so add it a speck at a time.'},
+  {id:'orange',label:'Orange',name:'Cadmium Orange Hue',code:'PO43',rgb:[0.470,0.110,0.018],s:1.0,near:'red',comp:'blue',note:'A transparent orange that reaches a middle value.'},
+  {id:'red',label:'Red',name:'Cadmium Red Hue',code:'PR170, PR188',rgb:[0.450,0.050,0.035],s:1.0,near:'blue',comp:'green',note:'Bright, warm red.'}]},
+ cobra:{brand:'Cobra',white:'Titanium White 105',paints:[
+  {id:'blue',label:'Ultramarine',name:'Ultramarine 504',code:'PB29',rgb:[0.042,0.032,0.150],s:0.55,near:'pblue',comp:'orange',note:'Warm, violet-leaning blue.'},
+  {id:'pblue',label:'Phthalo Blue',name:'Phthalo Blue 570',code:'PB15',rgb:[0.012,0.022,0.065],s:1.7,near:'blue',comp:'orange',note:'Cool, intense blue and very strong. Its tints are the brightest, cleanest blues in the set. Add it to white a speck at a time.'},
+  {id:'green',label:'Phthalo Green',name:'Phthalo Green 675',code:'PG7',rgb:[0.012,0.060,0.045],s:1.5,near:'pblue',comp:'red',note:'Extremely strong. Tiny amounts tint a lot of white, so add it a speck at a time.'},
+  {id:'lgreen',label:'Light Green',name:'Permanent Green Light 618',code:'PG7, PY',rgb:[0.110,0.300,0.050],s:0.9,near:'green',comp:'red',note:'Brighter, yellower green.'},
+  {id:'orange',label:'Orange',name:'Cadmium Orange 211',code:'PO20',rgb:[0.620,0.200,0.015],s:0.9,near:'red',comp:'blue',note:'A light, opaque orange.'},
+  {id:'red',label:'Red',name:'Pyrrole Red 315',code:'PR254',rgb:[0.440,0.040,0.033],s:1.1,near:'blue',comp:'green',note:'Clean, punchy red with strong tinting.'}]}
+};
+let PIGMENTS=PALETTES.artisan.paints;
+const byId=id=>PIGMENTS.find(x=>x.id===id);
+const WHITE={name:'Titanium White',rgb:[0.90,0.90,0.885]};
+const HIGHLIGHT=[255,61,127];
+
+const $=id=>document.getElementById(id);
+const state={darks:'near',contrast:'natural',key:'natural',lift:12,brush:false,brushSize:28,brand:'artisan',n:5,mode:'fit',pig:'blue',med:'oil',view:'paint',sel:-1,label:'Example still life'};
+let W=0,H=0,Lpix=null,Lraw=null,mask=null,srcImg=null,assign=null,zones=[],srcRGB=null;
+
+// ---------- colour maths ----------
+const ks=r=>(1-r)*(1-r)/(2*r);
+const rFromKs=k=>1+k-Math.sqrt(k*k+2*k);
+const lumY=c=>0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
+const toLin=v=>{v/=255;return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4)};
+const toSRGB=v=>{v=Math.max(0,Math.min(1,v));return Math.round(255*(v<=0.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-0.055))};
+const LfromY=Y=>Y>0.008856?116*Math.cbrt(Y)-16:903.3*Y;
+const YfromL=L=>L>8?Math.pow((L+16)/116,3):L/903.3;
+const hex=c=>'#'+c.map(v=>toSRGB(v).toString(16).padStart(2,'0')).join('');
+const grayHex=L=>{const y=YfromL(L);return hex([y,y,y])};
+const LIN=new Float32Array(256);for(let i=0;i<256;i++)LIN[i]=toLin(i);
+
+function mix(c,p){
+  return [0,1,2].map(i=>{
+    const kd=ks(p.rgb[i]),kw=ks(WHITE.rgb[i]);
+    const w=c*p.s,u=1-c;
+    return rFromKs((w*kd+u*kw)/(w+u));
+  });
+}
+function solve(targetY,p){
+  const yW=lumY(mix(0,p)),yD=lumY(mix(1,p));
+  if(targetY>=yW)return{c:0,lim:'white'};
+  if(targetY<=yD)return{c:1,lim:'dark'};
+  let lo=0,hi=1;
+  for(let i=0;i<50;i++){const m=(lo+hi)/2;lumY(mix(m,p))>targetY?lo=m:hi=m}
+  return{c:(lo+hi)/2,lim:null};
+}
+function mix2(d,a,b){
+  return [0,1,2].map(i=>{const wa=(1-d)*a.s,wb=d*b.s;
+    return rFromKs((wa*ks(a.rgb[i])+wb*ks(b.rgb[i]))/(wa+wb));});
+}
+function solveDeep(targetY,a,b){
+  let best=0,bd=1e9;
+  for(let d=0;d<=0.6001;d+=0.005){const e=Math.abs(lumY(mix2(d,a,b))-targetY);if(e<bd){bd=e;best=d}}
+  return best;
+}
+function nice(n){
+  if(n<3)return Math.max(0.5,Math.round(n*2)/2);
+  if(n<20)return Math.round(n);
+  if(n<60)return Math.round(n/5)*5;
+  return Math.round(n/10)*10;
+}
+const fmt=n=>(Number.isInteger(n)?n:n.toFixed(1));
+function ratioText(z,p){
+  const c=z.c;
+  if(z.deep>0){
+    const b=byId(z.partner),n=nice((1-z.deep)/z.deep);
+    const why=state.darks==='comp'?'The '+b.label.toLowerCase()+' is the complement: it darkens and slightly greys the '+p.label.toLowerCase()+'.':'The '+b.label.toLowerCase()+' darkens the '+p.label.toLowerCase()+' and keeps it in the same colour family.';
+    if(n>=40)return{main:p.name+' with a touch of '+b.name,sub:'No white. About '+fmt(n)+' : 1, a knife-tip of '+b.label.toLowerCase()+'. '+why};
+    return{main:fmt(n)+' parts '+p.name+' : 1 part '+b.name,sub:'No white. '+why};
+  }
+  if(z.lim==='white'||c<0.002)return{main:'Titanium White only',sub:'Lightest tone. Use white straight from the tube.'};
+  if(z.lim==='dark'||c>0.985)return{main:p.name+' only',sub:'Use the paint straight, no white.'};
+  if(c<0.5){
+    const n=nice((1-c)/c);
+    const part='1 part '+p.name+' : '+fmt(n)+' parts white';
+    if(n>=60)return{main:'White with a trace of '+p.name,sub:'About '+part+'. Pick up a pin-head of dark on the knife tip.'};
+    return{main:part,sub:Math.round(c*100)+'% '+p.name+' by volume'};
+  }
+  const n=nice(c/(1-c));
+  return{main:fmt(n)+' parts '+p.name+' : 1 part white',sub:Math.round(c*100)+'% '+p.name+' by volume'};
+}
+
+// ---------- image analysis ----------
+function loadImage(img,label){
+  srcImg=img;
+  const max=520,sc=Math.min(1,max/Math.max(img.width,img.height));
+  W=Math.max(1,Math.round(img.width*sc));H=Math.max(1,Math.round(img.height*sc));
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const g=c.getContext('2d');g.drawImage(img,0,0,W,H);
+  const d=g.getImageData(0,0,W,H).data;
+  Lraw=new Float32Array(W*H);mask=new Float32Array(W*H);
+  for(let i=0,j=0;i<d.length;i+=4,j++){
+    Lraw[j]=LfromY(0.2126*LIN[d[i]]+0.7152*LIN[d[i+1]]+0.0722*LIN[d[i+2]]);
+  }
+  state.label=label;state.sel=-1;
+  $('srcLabel').innerHTML=label==='Example still life'?'<span class="tag">Example image</span> · or drop a photo here':'';
+  if(label!=='Example still life')$('srcLabel').textContent=label;
+  adjust();
+}
+
+// Punch: area lift from the brush, then key (overall brightness), then contrast S-curve.
+const CONTRAST={soft:-0.3,natural:0,punchy:0.55,bold:1.0};
+const KEY={darker:1.25,natural:1,brighter:0.78};
+function adjL(L,m){
+  const c=CONTRAST[state.contrast],g=KEY[state.key];
+  if(m>0){const x=L/100;L=100*(x+(1-x)*m*state.lift/40)}
+  let x=Math.max(0,Math.min(1,L/100));
+  x=Math.pow(x,g);
+  if(c!==0){const e=c>0?1+c:1/(1-c);x=x<.5?.5*Math.pow(2*x,e):1-.5*Math.pow(2-2*x,e)}
+  return x*100;
+}
+function adjust(){
+  Lpix=new Float32Array(Lraw.length);
+  for(let i=0;i<Lraw.length;i++)Lpix[i]=adjL(Lraw[i],mask[i]);
+  analyze();
+}
+
+// Full-size value map for the enlarged view and the download (up to 2400px on the long side).
+function renderHi(){
+  const max=2400,sc=Math.min(1,max/Math.max(srcImg.width,srcImg.height));
+  const w=Math.max(1,Math.round(srcImg.width*sc)),h=Math.max(1,Math.round(srcImg.height*sc));
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  const g=cv.getContext('2d');g.drawImage(srcImg,0,0,w,h);
+  const im=g.getImageData(0,0,w,h),d=im.data;
+  const cols=zones.map(z=>state.view==='gray'?(v=>[v,v,v])(toSRGB(YfromL(z.L))):z.mix.map(toSRGB));
+  const kx=W/w,ky=H/h;
+  for(let y=0,i=0;y<h;y++){
+    const row=Math.min(H-1,Math.floor(y*ky))*W;
+    for(let x=0;x<w;x++,i+=4){
+      const L=LfromY(0.2126*LIN[d[i]]+0.7152*LIN[d[i+1]]+0.0722*LIN[d[i+2]]);
+      const a=adjL(L,mask[row+Math.min(W-1,Math.floor(x*kx))]);
+      let bi=0,bd=1e9;for(let j=0;j<zones.length;j++){const e=Math.abs(a-zones[j].L);if(e<bd){bd=e;bi=j}}
+      const c=cols[bi];d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];d[i+3]=255;
+    }
+  }
+  g.putImageData(im,0,0);return cv;
+}
+
+function analyze(){
+  const hist=new Float64Array(101);
+  for(let i=0;i<Lpix.length;i++)hist[Math.max(0,Math.min(100,Math.round(Lpix[i])))]++;
+  const total=Lpix.length;
+  const pct=q=>{let a=0;for(let i=0;i<=100;i++){a+=hist[i];if(a>=q*total)return i}return 100};
+  const k=state.n;let cents=[];
+  if(state.mode==='even'){
+    const lo=pct(0.01),hi=Math.max(lo+1,pct(0.99)),w=(hi-lo)/k;
+    for(let i=0;i<k;i++)cents.push(lo+(i+0.5)*w);
+  }else{
+    for(let i=0;i<k;i++)cents.push(pct((i+0.5)/k));
+    for(let it=0;it<40;it++){
+      const s=new Float64Array(k),n=new Float64Array(k);
+      for(let b=0;b<=100;b++){if(!hist[b])continue;let bi=0,bd=1e9;
+        for(let j=0;j<k;j++){const dd=Math.abs(b-cents[j]);if(dd<bd){bd=dd;bi=j}}
+        s[bi]+=b*hist[b];n[bi]+=hist[b];}
+      let moved=false;
+      for(let j=0;j<k;j++)if(n[j]){const nc=s[j]/n[j];if(Math.abs(nc-cents[j])>0.01)moved=true;cents[j]=nc}
+      if(!moved)break;
+    }
+  }
+  cents.sort((a,b)=>a-b);
+  // assign pixels
+  const a=new Uint8Array(total),cnt=new Float64Array(k),sum=new Float64Array(k);
+  for(let i=0;i<total;i++){const L=Lpix[i];let bi=0,bd=1e9;
+    for(let j=0;j<k;j++){const dd=Math.abs(L-cents[j]);if(dd<bd){bd=dd;bi=j}}
+    a[i]=bi;cnt[bi]++;sum[bi]+=L;}
+  const map=new Int16Array(k).fill(-1);zones=[];
+  for(let j=0;j<k;j++)if(cnt[j]>0){map[j]=zones.length;
+    zones.push({L:state.mode==='even'?cents[j]:sum[j]/cnt[j],area:cnt[j]/total});}
+  for(let i=0;i<total;i++)a[i]=map[a[i]];
+  assign=a;
+  if(state.sel>=zones.length)state.sel=-1;
+  computeMixes();
+}
+
+function computeMixes(){
+  const p=byId(state.pig);
+  const partners={near:byId(p.near),comp:byId(p.comp)};
+  const shift=state.med==='acrylic'?3:0;
+  const pureL=LfromY(lumY(mix(1,p)));
+  zones.forEach(z=>{
+    const tL=Math.min(100,z.L+shift);
+    const r=solve(YfromL(tL),p);
+    z.c=r.c;z.lim=r.lim;z.v={};
+    for(const k of ['near','comp']){
+      const b=partners[k];let d=0,m=mix(r.c,p);
+      if(b&&r.lim==='dark'&&tL<pureL-2){d=solveDeep(YfromL(tL),p,b);if(d>0)m=mix2(d,p,b)}
+      z.v[k]={deep:d,mix:m,partner:b?b.id:null,short:z.L<LfromY(lumY(m))-5};
+    }
+    Object.assign(z,z.v[state.darks]);
+  });
+  render();
+}
+
+// ---------- rendering ----------
+function render(){
+  const p=PIGMENTS.find(x=>x.id===state.pig);
+  // greyscale map
+  const gc=$('grayC'),pc=$('posterC');
+  [gc,pc].forEach(c=>{c.width=W;c.height=H});
+  const gctx=gc.getContext('2d'),pctx=pc.getContext('2d');
+  const gi=gctx.createImageData(W,H),pi=pctx.createImageData(W,H);
+  const gLUT=new Uint8ClampedArray(1001);
+  for(let i=0;i<=1000;i++){const y=YfromL(i/10);gLUT[i]=toSRGB(y)}
+  const zc=zones.map(z=>{
+    if(state.view==='gray'){const v=toSRGB(YfromL(z.L));return[v,v,v]}
+    return z.mix.map(toSRGB);
+  });
+  for(let i=0,j=0;j<Lpix.length;i+=4,j++){
+    const v=gLUT[Math.max(0,Math.min(1000,Math.round(Lpix[j]*10)))];
+    gi.data[i]=gi.data[i+1]=gi.data[i+2]=v;gi.data[i+3]=255;
+    if(state.brush&&mask[j]>0){const a=0.45*mask[j];gi.data[i]=v+(255-v)*a;gi.data[i+1]=v+(194-v)*a;gi.data[i+2]=v+(26-v)*a}
+    const z=assign[j];const col=(state.sel===z)?HIGHLIGHT:zc[z];
+    pi.data[i]=col[0];pi.data[i+1]=col[1];pi.data[i+2]=col[2];pi.data[i+3]=255;
+  }
+  gctx.putImageData(gi,0,0);pctx.putImageData(pi,0,0);
+  $('posterCap').textContent=state.sel>=0?'Tone '+(state.sel+1)+' highlighted':'Value map · '+zones.length+' tones';
+
+  // two strips: same-family darks on top, complement darks underneath
+  [['near','strip','nearLbl','Same family'],['comp','strip2','compLbl','Complement']].forEach(([k,id,lid,kind])=>{
+    const strip=$(id);strip.innerHTML='';
+    const b=byId(zones[0].v[k].partner);
+    const used=zones.filter(z=>z.v[k].deep>0).length;
+    $(lid).innerHTML='<b>'+kind+'</b> · darks with '+(b?b.name:'none')+(used?'':' · not needed for these tones')+(state.darks===k?'<span class="inuse">In use</span>':'');
+    $(id+'Wrap').classList.toggle('on',state.darks===k);
+    zones.forEach((z,i)=>{
+      const d=document.createElement('div');
+      d.style.background=hex(z.v[k].mix);
+      d.style.flexGrow=String(Math.max(0.35,z.area*zones.length));
+      d.style.color=z.L>55?'#111':'#f2f2f2';
+      d.textContent=i+1;d.title='Tone '+(i+1);
+      if(state.sel===i&&state.darks===k)d.style.boxShadow='inset 0 -4px 0 #ff3d7f';
+      d.onclick=e=>{e.stopPropagation();if(state.darks!==k){state.darks=k;state.sel=i;computeMixes()}else select(i)};
+      strip.appendChild(d);
+    });
+  });
+
+  // sheet
+  $('sheetTitle').textContent=p.name+' value study';
+  const vmin=(zones[0].L/10).toFixed(1),vmax=(zones[zones.length-1].L/10).toFixed(1);
+  $('sheetMeta').textContent=state.label+' · '+zones.length+' tones · values '+vmin+'–'+vmax+' on a 0–10 scale · '+(state.med==='oil'?PALETTES[state.brand].brand+' water-mixable oil':'acrylic')+
+    ' · darks: '+(state.darks==='comp'?'complement':'same family')+
+    (state.contrast!=='natural'?' · '+state.contrast+' contrast':'')+(state.key!=='natural'?' · '+state.key+' key':'')+
+    (mask&&mask.some(v=>v>0)&&state.lift>0?' · one area brightened':'');
+  $('pigNote').textContent=p.note;
+  $('medNote').textContent=state.med==='acrylic'
+    ?'Acrylic dries a little darker, so these wet mixes are set slightly lighter than the target.'
+    :'Water-mixable oils dry close to their wet colour, so mixes match the target directly.';
+  $('lgT').style.background='#888';$('lgM').style.background=hex(mix(0.12,p));
+
+  const b=byId(p[state.darks]);
+  const deepCount=zones.filter(z=>z.deep>0).length;
+  const pal=PALETTES[state.brand];
+  const paints=[
+    {chip:hex(mix(1,p)),name:pal.brand+' '+p.name+' ('+p.code+')',desc:'Your main colour. The light and middle tones are this plus white.'},
+    {chip:hex(WHITE.rgb),name:pal.brand+' '+pal.white,desc:'Opaque, strong white. The light tones are mostly white, so have plenty.'}
+  ];
+  if(deepCount)paints.push({chip:hex(mix(1,b)),name:pal.brand+' '+b.name+' ('+b.label.toLowerCase()+', small amount)',desc:deepCount+' dark tone'+(deepCount>1?'s are':' is')+' darker than '+p.name+' can reach. '+(state.darks==='comp'?b.label+' is its complement, so it darkens and slightly greys it for quieter, richer shadows.':b.label+' darkens it while keeping the painting in one colour family.')});
+  paints.push(state.med==='oil'
+    ?{chip:'transparent',name:'Water-mixable linseed oil or medium',desc:'Optional. A drop loosens stiff mixes. Clean brushes with water.'}
+    :{chip:'transparent',name:'Acrylic retarder or slow-drying medium',desc:'Optional. Keeps your tone puddles workable longer on the palette.'});
+  $('paints').innerHTML=paints.map(x=>'<li><span class="chip" style="background:'+x.chip+'"></span><div><b>'+x.name+'</b><p>'+x.desc+'</p></div></li>').join('');
+
+  const rows=$('rows');rows.innerHTML='';
+  zones.forEach((z,i)=>{
+    const r=ratioText(z,p);
+    const el=document.createElement('div');
+    el.className='row'+(state.sel===i?' sel':'');el.tabIndex=0;el.setAttribute('role','button');
+    el.setAttribute('aria-pressed',state.sel===i?'true':'false');
+    const label=i===0?'darkest':(i===zones.length-1?'lightest':'');
+    el.innerHTML='<div class="sw"><div style="background:'+grayHex(z.L)+'"></div><div style="background:'+hex(z.mix)+'"></div></div>'+
+      '<div style="min-width:0"><div class="rowtop"><strong>Tone '+(i+1)+'</strong><span>value '+(z.L/10).toFixed(1)+(label?' · '+label:'')+' · '+Math.round(z.area*100)+'% of image</span></div>'+
+      '<div class="ratio">'+r.main+'</div><div class="sub">'+r.sub+'</div>'+
+      (z.short?'<div class="flag">This is as dark as these two paints go. The real tone is a bit darker; compare against neighbouring tones instead.</div>':'')+'</div>';
+    el.onclick=()=>select(i);
+    el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(i)}};
+    rows.appendChild(el);
+  });
+
+  const tips=[
+    'Mix every tone before you start painting, in separate puddles, lightest to darkest. Make more of the tones with the largest share of the image.',
+    'For the light tones, add the '+p.label.toLowerCase()+' into the white a little at a time. '+p.name+' is far stronger than white, so going the other way wastes paint.',
+    'For the darkest tones, add the '+b.label.toLowerCase()+' into the '+p.label.toLowerCase()+' with the knife tip, a little at a time. Too much shifts the hue.',
+    'Check each puddle by dabbing it on a scrap card and holding it against the same area of a greyscale print of your photo. Squint to compare.',
+    state.med==='acrylic'?'Let a test dab dry for a minute before judging it. Acrylic darkens as it dries.':'Keep the oil content low in early layers (fat over lean), especially if you will paint colour over this study later.',
+    'Paint in tone order: block in the darkest shapes first, then work up to the lights.'
+  ];
+  if(state.contrast==='punchy'||state.contrast==='bold'||state.key==='brighter'||(mask&&mask.some(v=>v>0)))
+    tips.push('For extra colour punch, keep the mixes with the least white (the middle tones) in your focal area. White makes a colour paler as well as lighter, so the strongest colour sits in the middle values.');
+  $('tips').innerHTML=tips.map(t=>'<li>'+t+'</li>').join('');
+}
+
+function select(i){state.sel=state.sel===i?-1:i;render()}
+
+function sheetText(){
+  const p=PIGMENTS.find(x=>x.id===state.pig);
+  const out=[];
+  out.push(p.name.toUpperCase()+' VALUE STUDY');
+  out.push($('sheetMeta').textContent,'');
+  out.push('PAINTS');
+  document.querySelectorAll('#paints li').forEach(li=>out.push('- '+li.querySelector('b').textContent+': '+li.querySelector('p').textContent));
+  out.push('','TONES (darkest to lightest)');
+  zones.forEach((z,i)=>{const r=ratioText(z,p);
+    out.push('Tone '+(i+1)+' | value '+(z.L/10).toFixed(1)+' | '+Math.round(z.area*100)+'% of image | '+r.main+' ('+r.sub+')'+(z.short?' | darkest reachable with these paints':''));});
+  out.push('','TIPS');
+  document.querySelectorAll('#tips li').forEach((li,i)=>out.push((i+1)+'. '+li.textContent));
+  out.push('','Ratios are model estimates by volume. Test each mix on a card against your reference.');
+  return out.join('\n');
+}
+
+// ---------- example image ----------
+function sample(){
+  const c=document.createElement('canvas');c.width=520;c.height=390;const g=c.getContext('2d');
+  let gr=g.createLinearGradient(0,0,520,0);gr.addColorStop(0,'#d6d0c5');gr.addColorStop(1,'#4f4b45');
+  g.fillStyle=gr;g.fillRect(0,0,520,260);
+  gr=g.createLinearGradient(0,260,0,390);gr.addColorStop(0,'#94897a');gr.addColorStop(1,'#2e2a25');
+  g.fillStyle=gr;g.fillRect(0,260,520,130);
+  g.save();g.filter='blur(10px)';g.fillStyle='rgba(18,16,13,.75)';
+  g.beginPath();g.ellipse(300,288,140,26,0,0,Math.PI*2);g.fill();g.restore();
+  gr=g.createLinearGradient(330,0,430,0);gr.addColorStop(0,'#6d665c');gr.addColorStop(.25,'#b9b1a4');gr.addColorStop(.6,'#3f3a34');gr.addColorStop(1,'#1f1c19');
+  g.fillStyle=gr;g.fillRect(330,120,100,170);
+  g.fillStyle='#2a2622';g.fillRect(338,104,84,18);
+  gr=g.createRadialGradient(165,160,6,205,200,105);
+  gr.addColorStop(0,'#fbf8f2');gr.addColorStop(.3,'#cfc7ba');gr.addColorStop(.75,'#5a534a');gr.addColorStop(1,'#26221e');
+  g.fillStyle=gr;g.beginPath();g.arc(210,200,92,0,Math.PI*2);g.fill();
+  return c;
+}
+
+// ---------- wiring ----------
+function buildPig(){
+  PIGMENTS=PALETTES[state.brand].paints;
+  if(!byId(state.pig))state.pig=state.pig==='lgreen'?'green':'blue';
+  $('pigSeg').innerHTML=PIGMENTS.map(p=>'<button type="button" data-v="'+p.id+'" aria-pressed="'+(p.id===state.pig)+'" title="'+p.name+'"><span class="dot" style="background:'+hex(mix(0.35,p))+'"></span>'+p.label+'</button>').join('');
+}
+buildPig();
+$('nTones').addEventListener('input',e=>{state.n=+e.target.value;$('nOut').textContent=state.n;analyze()});
+function seg(id,key,after){
+  $(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    state[key]=b.dataset.v;$(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));after();});
+}
+// ---------- enlarge + download ----------
+let hiCanvas=null;
+function openLightbox(){
+  hiCanvas=renderHi();
+  const lc=$('lbCanvas');lc.width=hiCanvas.width;lc.height=hiCanvas.height;lc.getContext('2d').drawImage(hiCanvas,0,0);
+  const p=byId(state.pig);
+  $('lbTitle').textContent=p.name+' · '+zones.length+' tones'+(state.view==='gray'?' · grey':'');
+  $('lbMsg').textContent='';
+  $('lightbox').hidden=false;$('lbClose').focus();
+}
+function closeLightbox(){$('lightbox').hidden=true;$('enlarge').focus()}
+$('enlarge').onclick=openLightbox;
+$('lbClose').onclick=closeLightbox;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('lightbox').hidden)closeLightbox()});
+$('lbSave').onclick=()=>{
+  const p=byId(state.pig);
+  const name='value-map-'+p.label.toLowerCase().replace(/\s+/g,'-')+'-'+zones.length+'-tones.png';
+  hiCanvas.toBlob(async blob=>{
+    if(!blob){$('lbMsg').textContent='Could not create the image. Try again.';return}
+    const file=new File([blob],name,{type:'image/png'});
+    // Phones: the share sheet offers "Save Image" to Photos. Elsewhere: a normal download.
+    if(navigator.canShare&&navigator.canShare({files:[file]})&&/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){
+      try{await navigator.share({files:[file],title:name});$('lbMsg').textContent='Shared. Choose "Save Image" to keep it in Photos.';return}
+      catch(e){if(e&&e.name==='AbortError'){$('lbMsg').textContent='Cancelled.';return}}
+    }
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    $('lbMsg').textContent='Saved '+name+'.';
+  },'image/png');
+};
+
+seg('contrastSeg','contrast',adjust);seg('keySeg','key',adjust);
+$('lift').addEventListener('input',e=>{state.lift=+e.target.value;$('liftOut').textContent=state.lift});
+$('lift').addEventListener('change',adjust);
+$('bsize').addEventListener('input',e=>{state.brushSize=+e.target.value;$('bsizeOut').textContent=state.brushSize});
+function setBrush(on){
+  state.brush=on;$('brushBtn').setAttribute('aria-pressed',on);
+  $('brushBtn').textContent=on?'Done painting':'Paint area on photo';
+  $('grayC').classList.toggle('brushing',on);
+  $('grayCap').textContent=on?'Rub over the area to brighten':'Photo in greyscale';
+  render();
+}
+$('brushBtn').onclick=()=>setBrush(!state.brush);
+$('clearBtn').onclick=()=>{mask.fill(0);adjust()};
+(function(){
+  const cv=$('grayC');let down=false;
+  function stamp(e){
+    const r=cv.getBoundingClientRect(),sc=W/r.width;
+    const cx=(e.clientX-r.left)*sc,cy=(e.clientY-r.top)*sc,rad=state.brushSize*sc/2;
+    const x0=Math.max(0,Math.floor(cx-rad)),x1=Math.min(W-1,Math.ceil(cx+rad));
+    const y0=Math.max(0,Math.floor(cy-rad)),y1=Math.min(H-1,Math.ceil(cy+rad));
+    for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+      const d=Math.hypot(x-cx,y-cy)/rad;if(d>=1)continue;
+      const m=1-d*d,k=y*W+x;if(m>mask[k])mask[k]=m;
+    }
+    const g=cv.getContext('2d');g.fillStyle='rgba(255,194,26,.25)';
+    g.beginPath();g.arc(cx,cy,rad,0,Math.PI*2);g.fill();
+  }
+  cv.addEventListener('pointerdown',e=>{if(!state.brush)return;down=true;cv.setPointerCapture(e.pointerId);stamp(e);e.preventDefault()});
+  cv.addEventListener('pointermove',e=>{if(down)stamp(e)});
+  const end=()=>{if(down){down=false;adjust()}};
+  cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+})();
+seg('modeSeg','mode',analyze);seg('brandSeg','brand',()=>{buildPig();computeMixes()});seg('pigSeg','pig',computeMixes);seg('medSeg','med',computeMixes);seg('viewSeg','view',render);
+
+function readFile(f){
+  if(!f||!f.type.startsWith('image/')){$('srcLabel').textContent='That file is not an image. Choose a JPG, PNG or HEIC photo.';return}
+  const url=URL.createObjectURL(f);const img=new Image();
+  img.onload=()=>{loadImage(img,f.name);URL.revokeObjectURL(url)};
+  img.onerror=()=>{$('srcLabel').textContent='This browser could not open that photo. Try saving it as JPG first.'};
+  img.src=url;
+}
+$('pick').onclick=()=>$('file').click();
+$('file').addEventListener('change',e=>readFile(e.target.files[0]));
+const drop=$('drop');
+['dragover','dragenter'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
+document.addEventListener('drop',e=>{e.preventDefault();readFile(e.dataTransfer.files[0])});
+
+$('copy').onclick=()=>{
+  const t=sheetText();
+  const done=()=>{$('copyMsg').textContent='Copied. Paste it into Notes or a doc.'};
+  const fail=()=>{const ta=$('fallback');ta.value=t;ta.hidden=false;ta.focus();ta.select();$('copyMsg').textContent='Select all and copy the text below.'};
+  try{navigator.clipboard.writeText(t).then(done,fail)}catch(e){fail()}
+};
+
+loadImage(sample(),'Example still life');
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+</script>
+</body>
+</html>
