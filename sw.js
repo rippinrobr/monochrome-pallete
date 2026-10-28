@@ -1,6 +1,6 @@
-// Value Mixer service worker: keeps the app working offline in the studio.
+// Monochrome Palette service worker: keeps the app working offline in the studio.
 // Bump VERSION whenever index.html changes so phones pick up the new version.
-const VERSION = 'value-mixer-v1';
+const VERSION = 'monochrome-palette-v2';
 const CORE = [
   './',
   './index.html',
