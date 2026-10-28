@@ -1,6 +1,6 @@
 // Monochrome Palette service worker: keeps the app working offline in the studio.
 // Bump VERSION whenever index.html changes so phones pick up the new version.
-const VERSION = 'monochrome-palette-v5';
+const VERSION = 'monochrome-palette-v6';
 const CORE = [
   './',
   './index.html',
