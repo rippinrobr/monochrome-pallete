@@ -6,7 +6,7 @@ Load a reference photo and it will:
 
 - group the photo into 3–9 values and show them as a value map
 - give a mixing ratio for each tone: your chosen color plus Titanium White, with a darker partner paint for the deepest tones
-- compare two ways of mixing the darks: a same-family color (top strip) or the complement (bottom strip)
+- compare two ways of mixing the darks: a same-family color (top scale) or the complement (bottom scale)
 - let you add punch: contrast, overall brightness, and a brush to brighten one area
 - show the value map full screen and save it as a PNG
 

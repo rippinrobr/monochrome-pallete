@@ -77,6 +77,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .seg button{flex:1;font:500 13px/1.2 var(--body);padding:9px 6px;border:0;background:var(--bg);color:var(--fg);cursor:pointer}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.controls.settings{border-top:1px solid var(--line);padding-top:16px}
+.field.full{grid-column:1/-1}
 .stripwrap{display:flex;flex-direction:column;gap:5px;padding:6px;border-radius:5px;border:1px solid transparent}
 .stripwrap.on{border-color:var(--accent)}
 .striplbl{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
@@ -160,12 +162,17 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
       </div>
 
       <div class="field">
-        <span class="lbl">Tone strips · tap a strip to use it for the map and mixing sheet</span>
+        <span class="lbl">Tone scale · tap a scale to use it for the map and mixing sheet</span>
         <div class="stripwrap" id="stripWrap"><div class="striplbl" id="nearLbl"></div><div class="strip" id="strip"></div></div>
         <div class="stripwrap" id="strip2Wrap"><div class="striplbl" id="compLbl"></div><div class="strip" id="strip2"></div></div>
       </div>
 
-      <div class="controls">
+      <div class="controls settings">
+        <div class="field full">
+          <span class="lbl">Color</span>
+          <div class="seg" id="pigSeg"></div>
+          <small id="pigNote"></small>
+        </div>
         <div class="field">
           <div class="rangehead"><label for="nTones">Number of tones</label><output id="nOut">5</output></div>
           <input type="range" id="nTones" min="3" max="9" value="5">
@@ -186,11 +193,6 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
             <button type="button" data-v="cobra" aria-pressed="false">Cobra</button>
           </div>
           <small>Both are water-mixable oils, and they can be mixed together. Light Green is Cobra only.</small>
-        </div>
-        <div class="field">
-          <span class="lbl">Color (from yesterday's set)</span>
-          <div class="seg" id="pigSeg"></div>
-          <small id="pigNote"></small>
         </div>
         <div class="field">
           <span class="lbl">Paint</span>
