@@ -114,6 +114,9 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .lightbox .lbclose{background:transparent;color:#e8e7e3;border-color:#555}
 .lbstage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto}
 .lbstage canvas{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
+.lightbox.sheet .lbstage{align-items:flex-start;-webkit-overflow-scrolling:touch}
+.lightbox.sheet .lbstage canvas{width:100%;max-width:820px;max-height:none;margin:0 auto}
+.sheetsave{margin-top:10px}
 .lbmsg{color:#a2a7ad;font-size:13px;min-height:18px;padding-top:8px}
 .brushrow{display:flex;gap:10px;flex-wrap:wrap}
 .btn.ghost[aria-pressed="true"]{background:#ffc21a;border-color:#ffc21a;color:#1b1d20}
@@ -289,6 +292,10 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
         <h2>Mixing sheet</h2>
         <h3 id="sheetTitle">Ultramarine Blue value study</h3>
         <div class="meta" id="sheetMeta"></div>
+        <div class="copyrow sheetsave">
+          <button class="btn" id="sheetBtn" type="button">Save painting sheet</button>
+          <span class="hint" id="sheetMsg" role="status">One image with your photo, value map, mixes, settings and tips.</span>
+        </div>
       </div>
 
       <div class="field">
@@ -334,7 +341,7 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
       <button class="btn ghost lbclose" id="lbClose" type="button">Close</button>
     </div>
   </div>
-  <div class="lbstage"><canvas id="lbCanvas"></canvas></div>
+  <div class="lbstage" id="lbStage"><canvas id="lbCanvas"></canvas></div>
   <div class="lbmsg" id="lbMsg" role="status"></div>
 </div>
 
@@ -398,25 +405,29 @@ function nice(n){
   if(n<60)return Math.round(n/5)*5;
   return Math.round(n/10)*10;
 }
+// A paint's name inside a sentence: favorites read as 'the blue', others keep their proper name.
+const short=t=>t.fav?t.label.toLowerCase():t.label;
 const fmt=n=>(Number.isInteger(n)?n:n.toFixed(1));
+const parts=n=>n===1?'1 part':fmt(n)+' parts';
 function ratioText(z,p){
   const c=z.c;
   if(z.deep>0){
     const b=byId(z.partner),n=nice((1-z.deep)/z.deep);
-    const why=state.darks==='comp'?'The '+b.label.toLowerCase()+' is the complement: it darkens and slightly grays the '+p.label.toLowerCase()+'.':'The '+b.label.toLowerCase()+' darkens the '+p.label.toLowerCase()+' and keeps it in the same color family.';
-    if(n>=40)return{main:p.name+' with a touch of '+b.name,sub:'No white. About '+fmt(n)+' : 1, a knife-tip of '+b.label.toLowerCase()+'. '+why};
-    return{main:fmt(n)+' parts '+p.name+' : 1 part '+b.name,sub:'No white. '+why};
+    const why=state.darks==='comp'?'The '+short(b)+' is the complement: it darkens and slightly grays the '+short(p)+'.':'The '+short(b)+' darkens the '+short(p)+' and keeps it in the same color family.';
+    if(n>=40)return{main:p.name+' with a touch of '+b.name,sub:'No white. About '+fmt(n)+' : 1, a knife-tip of '+short(b)+'. '+why};
+    if(n<1)return{main:'1 part '+p.name+' : '+parts(nice(z.deep/(1-z.deep)))+' '+b.name,sub:'No white. '+why};
+    return{main:parts(n)+' '+p.name+' : 1 part '+b.name,sub:'No white. '+why};
   }
   if(z.lim==='white'||c<0.002)return{main:'Titanium White only',sub:'Lightest tone. Use white straight from the tube.'};
   if(z.lim==='dark'||c>0.985)return{main:p.name+' only',sub:'Use the paint straight, no white.'};
   if(c<0.5){
     const n=nice((1-c)/c);
-    const part='1 part '+p.name+' : '+fmt(n)+' parts white';
+    const part='1 part '+p.name+' : '+parts(n)+' white';
     if(n>=60)return{main:'White with a trace of '+p.name,sub:'About '+part+'. Pick up a pin-head of dark on the knife tip.'};
     return{main:part,sub:Math.round(c*100)+'% '+p.name+' by volume'};
   }
   const n=nice(c/(1-c));
-  return{main:fmt(n)+' parts '+p.name+' : 1 part white',sub:Math.round(c*100)+'% '+p.name+' by volume'};
+  return{main:parts(n)+' '+p.name+' : 1 part white',sub:Math.round(c*100)+'% '+p.name+' by volume'};
 }
 
 // ---------- image analysis ----------
@@ -593,7 +604,7 @@ function render(){
     {chip:hex(mix(1,p)),name:pal.brand+' '+p.name+' ('+p.code+')',desc:'Your main color. The light and middle tones are this plus white.'},
     {chip:hex(WHITE.rgb),name:pal.brand+' '+pal.white,desc:'Opaque, strong white. The light tones are mostly white, so have plenty.'}
   ];
-  if(deepCount)paints.push({chip:hex(mix(1,b)),name:pal.brand+' '+b.name+' ('+b.label.toLowerCase()+', small amount)',desc:deepCount+' dark tone'+(deepCount>1?'s are':' is')+' darker than '+p.name+' can reach. '+(state.darks==='comp'?b.label+' is its complement, so it darkens and slightly grays it for quieter, richer shadows.':b.label+' darkens it while keeping the painting in one color family.')});
+  if(deepCount)paints.push({chip:hex(mix(1,b)),name:pal.brand+' '+b.name+' ('+(b.fav?b.label.toLowerCase()+', ':'')+'small amount)',desc:deepCount+' dark tone'+(deepCount>1?'s are':' is')+' darker than '+p.name+' can reach. '+(state.darks==='comp'?b.label+' is its complement, so it darkens and slightly grays it for quieter, richer shadows.':b.label+' darkens it while keeping the painting in one color family.')});
   paints.push(state.med==='oil'
     ?{chip:'transparent',name:'Water-mixable linseed oil or medium',desc:'Optional. A drop loosens stiff mixes. Clean brushes with water.'}
     :{chip:'transparent',name:'Acrylic retarder or slow-drying medium',desc:'Optional. Keeps your tone puddles workable longer on the palette.'});
@@ -617,8 +628,8 @@ function render(){
 
   const tips=[
     'Mix every tone before you start painting, in separate puddles, lightest to darkest. Make more of the tones with the largest share of the image.',
-    'For the light tones, add the '+p.label.toLowerCase()+' into the white a little at a time. '+p.name+' is far stronger than white, so going the other way wastes paint.',
-    b?'For the darkest tones, add the '+b.label.toLowerCase()+' into the '+p.label.toLowerCase()+' with the knife tip, a little at a time. Too much shifts the hue.':'The darkest tone is '+p.name+' straight from the tube.',
+    'For the light tones, add the '+short(p)+' into the white a little at a time. '+p.name+' is far stronger than white, so going the other way wastes paint.',
+    b?'For the darkest tones, add the '+short(b)+' into the '+short(p)+' with the knife tip, a little at a time. Too much shifts the hue.':'The darkest tone is '+p.name+' straight from the tube.',
     'Check each puddle by dabbing it on a scrap card and holding it against the same area of a grayscale print of your photo. Squint to compare.',
     state.med==='acrylic'?'Let a test dab dry for a minute before judging it. Acrylic darkens as it dries.':'Keep the oil content low in early layers (fat over lean), especially if you will paint color over this study later.',
     'Paint in tone order: block in the darkest shapes first, then work up to the lights.'
@@ -644,6 +655,127 @@ function sheetText(){
   document.querySelectorAll('#tips li').forEach((li,i)=>out.push((i+1)+'. '+li.textContent));
   out.push('','Ratios are model estimates by volume. Test each mix on a card against your reference.');
   return out.join('\n');
+}
+
+// ---------- painting sheet: one image with the photo, map, tones, mixes, settings and tips ----------
+async function buildSheet(){
+  try{if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
+  const p=byId(state.pig),pal=PALETTES[state.brand],partner=byId(p[state.darks]);
+  const SW=1240,PAD=60,CW=SW-2*PAD;
+  const cv=document.createElement('canvas');cv.width=SW;cv.height=9000;
+  const g=cv.getContext('2d');
+  const C={bg:'#f7f8f6',fg:'#1b1d20',muted:'#596067',line:'#c9cecb',accent:'#2c3c96',warn:'#9a4a12'};
+  const F={d:"'Bricolage Grotesque','Avenir Next',system-ui,sans-serif",b:"'IBM Plex Sans',system-ui,-apple-system,sans-serif",m:"'IBM Plex Mono',ui-monospace,Menlo,monospace"};
+  g.fillStyle=C.bg;g.fillRect(0,0,SW,cv.height);g.textBaseline='top';
+  const font=(w,sz,fam)=>{g.font=w+' '+sz+'px '+fam};
+  function wrap(text,x,y,maxW,lh,color){
+    g.fillStyle=color||C.fg;let line='';
+    for(const w of String(text).split(/\s+/)){const t=line?line+' '+w:w;
+      if(g.measureText(t).width>maxW&&line){g.fillText(line,x,y);y+=lh;line=w}else line=t}
+    if(line){g.fillText(line,x,y);y+=lh}
+    return y;
+  }
+  function section(t,y){g.fillStyle=C.line;g.fillRect(PAD,y,CW,2);y+=26;font(600,19,F.b);g.fillStyle=C.muted;
+    let x=PAD;for(const ch of t.toUpperCase()){g.fillText(ch,x,y);x+=g.measureText(ch).width+2}return y+36}
+  const fit=(w,h,bw,bh)=>{const s=Math.min(bw/w,bh/h);return[w*s,h*s]};
+
+  let y=PAD;
+  // header
+  font(700,56,F.d);y=wrap(p.name+' value study',PAD,y,CW,64);
+  const when=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  font(400,21,F.m);y=wrap(when+' · '+state.label+' · '+pal.brand+' '+(state.med==='oil'?'water-mixable oil':'acrylic'),PAD,y+8,CW,30,C.muted);
+  y+=28;
+
+  // photo and value map
+  const gap=28,bw=(CW-gap)/2,map=renderHi();
+  const [dw,dh]=fit(srcImg.width,srcImg.height,bw,640);
+  const ox=(bw-dw)/2;
+  g.drawImage(srcImg,PAD+ox,y,dw,dh);g.drawImage(map,PAD+bw+gap+ox,y,dw,dh);
+  g.strokeStyle=C.line;g.lineWidth=2;g.strokeRect(PAD+ox,y,dw,dh);g.strokeRect(PAD+bw+gap+ox,y,dw,dh);
+  y+=dh+12;font(500,19,F.m);g.fillStyle=C.muted;
+  g.fillText('Reference photo',PAD+ox,y);g.fillText('Value map · '+zones.length+' tones',PAD+bw+gap+ox,y);
+  y+=48;
+
+  // tone scale
+  y=section('Tone scale · darkest to lightest',y);
+  const n=zones.length,tg=8,tw=(CW-tg*(n-1))/n,th=130;
+  zones.forEach((z,i)=>{
+    const x=PAD+i*(tw+tg);g.fillStyle=hex(z.mix);g.fillRect(x,y,tw,th);
+    g.strokeStyle=C.line;g.lineWidth=1.5;g.strokeRect(x,y,tw,th);
+    const ink=z.L>55?'#111111':'#f2f2f2';g.fillStyle=ink;
+    font(700,34,F.d);g.fillText(String(i+1),x+12,y+10);
+    font(500,17,F.m);g.fillText('value '+(z.L/10).toFixed(1),x+12,y+th-28);
+  });
+  y+=th+18;font(400,20,F.b);
+  y=wrap(state.darks==='comp'?'Darks deepened with the complement'+(partner?', '+partner.name:'')+'.':'Darks kept in the same color family'+(partner?', deepened with '+partner.name:'')+'.',PAD,y,CW,28,C.muted);
+  y+=30;
+
+  // paints
+  y=section('Paints',y);
+  document.querySelectorAll('#paints li').forEach(li=>{
+    const chip=li.querySelector('.chip').style.background;
+    g.beginPath();g.arc(PAD+20,y+18,18,0,Math.PI*2);
+    if(chip&&chip!=='transparent'){g.fillStyle=chip;g.fill()}
+    g.strokeStyle=C.line;g.lineWidth=2;g.stroke();
+    font(600,24,F.b);let yy=wrap(li.querySelector('b').textContent,PAD+56,y,CW-56,32);
+    font(400,20,F.b);yy=wrap(li.querySelector('p').textContent,PAD+56,yy+2,CW-56,28,C.muted);
+    y=Math.max(yy,y+40)+16;
+  });
+  y+=14;
+
+  // mixes
+  y=section('Mixing recipes · parts by volume',y);
+  zones.forEach((z,i)=>{
+    const r=ratioText(z,p),sw=104,x=PAD+sw+24,w=CW-sw-24,top=y;
+    const label=i===0?' · darkest':(i===n-1?' · lightest':'');
+    font(500,19,F.m);let yy=wrap('Tone '+(i+1)+' · value '+(z.L/10).toFixed(1)+label+' · '+Math.round(z.area*100)+'% of picture',x,y,w,26,C.muted);
+    font(600,28,F.b);yy=wrap(r.main,x,yy+4,w,36);
+    font(400,20,F.b);yy=wrap(r.sub,x,yy+2,w,28,C.muted);
+    if(z.short){font(500,19,F.b);yy=wrap('As dark as these paints go. The real tone is a little darker.',x,yy+2,w,26,C.warn)}
+    const h=Math.max(sw,yy-top);
+    g.fillStyle=grayHex(z.L);g.fillRect(PAD,top,sw,sw/2);g.fillStyle=hex(z.mix);g.fillRect(PAD,top+sw/2,sw,sw/2);
+    g.strokeStyle=C.line;g.lineWidth=1.5;g.strokeRect(PAD,top,sw,sw);
+    y=top+h+18;g.fillStyle=C.line;g.fillRect(PAD,y,CW,1);y+=18;
+  });
+  font(400,18,F.m);g.fillStyle=C.muted;g.fillText('Swatch top: target value in gray · bottom: predicted mix',PAD,y);
+  y+=50;
+
+  // settings
+  y=section('Settings',y);
+  const brightened=mask&&mask.some(v=>v>0)&&state.lift>0;
+  const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+  const rows=[
+    ['Brand',pal.brand],['Paint',state.med==='oil'?'Water-mixable oil':'Acrylic'],
+    ['Color',p.name+' ('+p.code+')'],['Dark tones',(state.darks==='comp'?'Complement':'Same family')+(partner?' · '+partner.name:'')],
+    ['Number of tones',String(n)],['Tones chosen',state.mode==='even'?'Even steps':'Fit the photo'],
+    ['Contrast',cap(state.contrast)],['Key',cap(state.key)],
+    ['Brightened area',brightened?'Yes, lifted '+state.lift:'None'],['Value map shows',state.view==='gray'?'Gray':'Paint color']
+  ];
+  const colW=(CW-40)/2;
+  for(let i=0;i<rows.length;i+=2){
+    let h=0;
+    for(let k=0;k<2&&i+k<rows.length;k++){
+      const [key,val]=rows[i+k],x=PAD+k*(colW+40);
+      font(500,18,F.m);g.fillStyle=C.muted;g.fillText(key.toUpperCase(),x,y);
+      font(500,23,F.b);const yy=wrap(val,x,y+26,colW,30);h=Math.max(h,yy-y);
+    }
+    y+=h+18;
+  }
+  y+=24;
+
+  // tips
+  y=section('Working tips',y);
+  document.querySelectorAll('#tips li').forEach((li,i)=>{
+    font(700,22,F.d);g.fillStyle=C.accent;g.fillText((i+1)+'.',PAD,y);
+    font(400,21,F.b);y=wrap(li.textContent,PAD+40,y,CW-40,30)+12;
+  });
+  y+=24;
+  g.fillStyle=C.line;g.fillRect(PAD,y,CW,2);y+=22;
+  font(400,18,F.b);y=wrap('Ratios are estimates from a paint-mixing model. Brands vary, so mix the first tone, test it on a card next to your reference, and adjust. Made with Monochrome Palette.',PAD,y,CW,26,C.muted);
+
+  const H=Math.ceil(y+PAD),out=document.createElement('canvas');out.width=SW;out.height=H;
+  out.getContext('2d').drawImage(cv,0,0);
+  return out;
 }
 
 // ---------- example image ----------
@@ -692,18 +824,28 @@ function seg(id,key,after){
     state[key]=b.dataset.v;$(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));after();});
 }
 // ---------- enlarge + download ----------
-let hiCanvas=null;
-function openLightbox(){
-  hiCanvas=renderHi();
-  const lc=$('lbCanvas');lc.width=hiCanvas.width;lc.height=hiCanvas.height;lc.getContext('2d').drawImage(hiCanvas,0,0);
-  const p=byId(state.pig);
-  $('lbTitle').textContent=p.name+' · '+zones.length+' tones'+(state.view==='gray'?' · gray':'');
-  $('lbMsg').textContent='';
-  $('lightbox').hidden=false;$('lbClose').focus();
+let hiCanvas=null,lbMode='map';
+function showLightbox(canvas,title,mode){
+  hiCanvas=canvas;lbMode=mode;
+  const lc=$('lbCanvas');lc.width=canvas.width;lc.height=canvas.height;lc.getContext('2d').drawImage(canvas,0,0);
+  $('lightbox').classList.toggle('sheet',mode==='sheet');
+  $('lbTitle').textContent=title;$('lbMsg').textContent='';
+  $('lightbox').hidden=false;$('lbStage').scrollTop=0;$('lbClose').focus();
 }
-function closeLightbox(){$('lightbox').hidden=true;$('enlarge').focus()}
+function openLightbox(){
+  const p=byId(state.pig);
+  showLightbox(renderHi(),p.name+' · '+zones.length+' tones'+(state.view==='gray'?' · gray':''),'map');
+}
+async function openSheet(){
+  const b=$('sheetBtn');b.disabled=true;const t=b.textContent;b.textContent='Making sheet…';
+  try{showLightbox(await buildSheet(),'Painting sheet · '+byId(state.pig).name,'sheet')}
+  catch(e){$('sheetMsg').textContent='Could not make the sheet. Try again.'}
+  finally{b.disabled=false;b.textContent=t}
+}
+function closeLightbox(){$('lightbox').hidden=true;(lbMode==='sheet'?$('sheetBtn'):$('enlarge')).focus()}
 $('enlarge').onclick=openLightbox;
 $('lbClose').onclick=closeLightbox;
+$('sheetBtn').onclick=openSheet;
 
 // ---------- full color picker ----------
 function renderPicker(){
@@ -744,8 +886,9 @@ $('pickSearch').addEventListener('input',renderPicker);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('picker').hidden)closePicker()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('lightbox').hidden)closeLightbox()});
 $('lbSave').onclick=()=>{
-  const p=byId(state.pig);
-  const name='value-map-'+p.label.toLowerCase().replace(/\s+/g,'-')+'-'+zones.length+'-tones.png';
+  const p=byId(state.pig),slug=p.label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const day=new Date().toISOString().slice(0,10);
+  const name=lbMode==='sheet'?'painting-sheet-'+slug+'-'+day+'.png':'value-map-'+slug+'-'+zones.length+'-tones.png';
   hiCanvas.toBlob(async blob=>{
     if(!blob){$('lbMsg').textContent='Could not create the image. Try again.';return}
     const file=new File([blob],name,{type:'image/png'});

@@ -9,6 +9,7 @@ Load a reference photo and it will:
 - compare two ways of mixing the darks: a same-family color (top scale) or the complement (bottom scale)
 - let you add punch: contrast, overall brightness, and a brush to brighten one area
 - show the value map full screen and save it as a PNG
+- save a painting sheet: one tall image with the reference photo, value map, tone scale, paints, mixing recipes, settings and working tips, to keep in Photos for the studio
 
 Paints cover the full **Winsor & Newton Artisan** and **Cobra Artist** water-mixable oil ranges (whites and metallics aside). Six favorites sit up front: Ultramarine, Phthalo Blue, Phthalo Green, Light Green (Cobra), Orange and Red. Tap **More colors…** to search the rest by name or pigment. Each tube is modeled from the pigments on the maker's chart (`paints.js`), and the app picks a same-family partner and a complement from the same brand for the dark tones.
 
