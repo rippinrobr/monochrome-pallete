@@ -123,6 +123,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 canvas.brushing{cursor:crosshair;touch-action:none;outline:2px solid #ffc21a;outline-offset:2px}
 #pigSeg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line)}
 #pigSeg button{border-left:0;padding:10px 4px}
+#palSeg{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line)}
+#palSeg button{border-left:0}
+.tubes{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;font-weight:500}
+.tube{display:inline-flex;align-items:center}
+#palNote a{color:var(--accent)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:0 0 0 1px var(--line)}
 
 .strip{display:flex;height:54px;border-radius:3px;overflow:hidden;border:1px solid var(--line)}
@@ -163,14 +168,14 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
 <div class="wrap">
   <header>
     <h1>Monochrome Palette</h1>
-    <p class="lede">Load a reference photo. The mixer groups it into a few tones, then tells you how to mix each tone from one color, Titanium White, and a touch of a darker partner color for the deepest darks.</p>
+    <p class="lede">Load a reference photo. The app groups it into tones or colors, then tells you how to mix each one from your palette: one color for a monochromatic study, or a classic limited palette.</p>
     <div class="scale" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </header>
 
   <div class="grid">
     <div class="col">
     <section class="panel" aria-label="Photo and tones">
-      <h2>Photo &amp; tones</h2>
+      <h2 id="photoH2">Photo &amp; tones</h2>
       <div class="drop" id="drop">
         <button class="btn" id="pick" type="button">Choose a photo</button>
         <input type="file" id="file" accept="image/*" hidden>
@@ -183,18 +188,18 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
       </div>
 
       <div class="field">
-        <span class="lbl">Tone scale · tap a scale to use it for the map and mixing sheet</span>
+        <span class="lbl" id="scaleLbl">Tone scale · tap a scale to use it for the map and mixing sheet</span>
         <div class="stripwrap" id="stripWrap"><div class="striplbl" id="nearLbl"></div><div class="strip" id="strip"></div></div>
         <div class="stripwrap" id="strip2Wrap"><div class="striplbl" id="compLbl"></div><div class="strip" id="strip2"></div></div>
       </div>
 
       <div class="controls">
         <div class="field">
-          <div class="rangehead"><label for="nTones">Number of tones</label><output id="nOut">5</output></div>
+          <div class="rangehead"><label for="nTones" id="nLbl">Number of tones</label><output id="nOut">5</output></div>
           <input type="range" id="nTones" min="3" max="9" value="5">
-          <small>3–5 for a quick block-in, 7–9 for a finished grisaille.</small>
+          <small id="nHint">3–5 for a quick block-in, 7–9 for a finished grisaille.</small>
         </div>
-        <div class="field">
+        <div class="field" id="modeField">
           <span class="lbl">How tones are chosen</span>
           <div class="seg" id="modeSeg">
             <button type="button" data-v="fit" aria-pressed="true">Fit the photo</button>
@@ -209,6 +214,20 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
       <h2>Paints</h2>
       <div class="controls">
         <div class="field full">
+          <span class="lbl">Palette</span>
+          <div class="seg" id="palSeg">
+            <button type="button" data-v="mono" aria-pressed="true">Monochromatic</button>
+            <button type="button" data-v="zorn" aria-pressed="false">Zorn</button>
+            <button type="button" data-v="primary" aria-pressed="false">Primary colors</button>
+            <button type="button" data-v="warmcool" aria-pressed="false">Warm &amp; cool</button>
+          </div>
+        </div>
+        <div class="field full" id="palField" hidden>
+          <span class="lbl">Paints in this palette</span>
+          <div class="tubes" id="palTubes"></div>
+          <small id="palNote"></small>
+        </div>
+        <div class="field full" id="colorField">
           <span class="lbl">Color</span>
           <div class="seg" id="pigSeg"></div>
           <div class="pickrow">
@@ -234,7 +253,7 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
           <small id="medNote"></small>
         </div>
         <div class="field">
-          <span class="lbl">Value map shows</span>
+          <span class="lbl">Map shows</span>
           <div class="seg" id="viewSeg">
             <button type="button" data-v="paint" aria-pressed="true">Paint color</button>
             <button type="button" data-v="gray" aria-pressed="false">Gray</button>
@@ -304,7 +323,7 @@ textarea#fallback{width:100%;height:160px;font:12px var(--mono);background:var(-
       </div>
 
       <div class="field">
-        <div class="legend"><span><i id="lgT"></i>top: target tone</span><span><i id="lgM"></i>bottom: predicted mix</span></div>
+        <div class="legend"><span><i id="lgT"></i><span id="lgTt">top: target tone</span></span><span><i id="lgM"></i>bottom: predicted mix</span></div>
         <div class="rows" id="rows"></div>
       </div>
 
@@ -360,8 +379,8 @@ const WHITE={name:'Titanium White',rgb:[0.90,0.90,0.885]};
 const HIGHLIGHT=[255,61,127];
 
 const $=id=>document.getElementById(id);
-const state={darks:'near',contrast:'natural',key:'natural',lift:12,brush:false,brushSize:28,brand:'artisan',n:5,mode:'fit',pig:'blue',med:'oil',view:'paint',sel:-1,label:'Example still life'};
-let W=0,H=0,Lpix=null,Lraw=null,mask=null,srcImg=null,assign=null,zones=[],srcRGB=null;
+const state={palette:'mono',nColors:8,darks:'near',contrast:'natural',key:'natural',lift:12,brush:false,brushSize:28,brand:'artisan',n:5,mode:'fit',pig:'blue',med:'oil',view:'paint',sel:-1,label:'Example still life'};
+let W=0,H=0,Lpix=null,Lraw=null,Araw=null,Braw=null,mask=null,srcImg=null,assign=null,zones=[],srcRGB=null;
 
 // ---------- color maths ----------
 const ks=r=>(1-r)*(1-r)/(2*r);
@@ -430,6 +449,88 @@ function ratioText(z,p){
   return{main:parts(n)+' '+p.name+' : 1 part white',sub:Math.round(c*100)+'% '+p.name+' by volume'};
 }
 
+// ---------- limited palettes ----------
+const PALETTE_DEFS={
+  mono:{name:'Monochromatic'},
+  zorn:{name:'Zorn',title:'Zorn palette',
+    about:"Anders Zorn's four-paint palette: an earth yellow, a warm red, black and white. Black stands in for blue, so the color stays warm and harmonious.",
+    tubes:{artisan:['yellow-ochre','cadmium-red-light','ivory-black'],cobra:['yellow-ochre-227','cadmium-red-light-303','ivory-black-701']},
+    roles:["The palette's yellow. With black it makes muted olive greens.","The palette's red. Warms skin, lips and shadows.","Stands in for blue. With white it reads as a cool blue-gray next to the warm paints."]},
+  primary:{name:'Primary colors',title:'Primary palette',
+    about:'A yellow, a magenta-leaning red and a cyan-leaning blue, plus white. The widest range of the four: greens, violets and oranges all mix from these.',
+    tubes:{artisan:['cadmium-yellow-light','permanent-rose','pblue'],cobra:['primary-yellow-275','primary-magenta-369','primary-cyan-572']},
+    roles:['Primary yellow. With the blue it makes greens; with the red, oranges.','Primary red, leaning magenta. With the blue it makes violets.','Primary blue, leaning cyan. Very strong, so add it in small amounts.']},
+  warmcool:{name:'Warm & cool',title:'Warm & cool palette',
+    about:"Anna Wakitsch's warm & cool palette: transparent red oxide, ivory black and white. A warm string of red-oranges and a cool string of grays combine into skin tones.",
+    tubes:{artisan:['burnt-sienna','ivory-black'],cobra:['transparent-oxide-red-378','ivory-black-701']},
+    roles:['The warm string. Makes the red-oranges and, mixed with the grays, the skin tones.','The cool string. With white it makes the cool grays.'],
+    note:{artisan:'Artisan has no transparent red oxide, so this uses Burnt Sienna (PR101), the substitute Wakitsch suggests.'},
+    link:'https://static1.squarespace.com/static/58b31bad8419c27c671d830e/t/621bc4370dbe0161563501be/1645986887818/Mixing_the_warm_cool_palette_Anna_Wakitsch.pdf'}
+};
+const isMono=()=>state.palette==='mono';
+const WHITE_T={id:'white',name:'Titanium White',rgb:WHITE.rgb,s:1};
+function palTubes(){return PALETTE_DEFS[state.palette].tubes[state.brand].map(id=>PALETTES[state.brand].paints.find(x=>x.id===id))}
+// Kubelka–Munk mix of any number of paints, by volume.
+function mixN(comps,w){
+  let S=0;const K=[0,0,0];
+  for(let j=0;j<comps.length;j++){if(!(w[j]>0))continue;const e=w[j]*comps[j].s;S+=e;for(let i=0;i<3;i++)K[i]+=e*ks(comps[j].rgb[i])}
+  return K.map(k=>rFromKs(k/S));
+}
+const fLab=t=>t>0.008856?Math.cbrt(t):7.787*t+16/116;
+function labOf(lin){
+  const X=(0.4124*lin[0]+0.3576*lin[1]+0.1805*lin[2])/0.95047,Y=0.2126*lin[0]+0.7152*lin[1]+0.0722*lin[2],Z=(0.0193*lin[0]+0.1192*lin[1]+0.9505*lin[2])/1.08883;
+  const fx=fLab(X),fy=fLab(Y),fz=fLab(Z);return[116*fy-16,500*(fx-fy),200*(fy-fz)];
+}
+function linOfLab(L,a,b){
+  const fy=(L+16)/116,fx=fy+a/500,fz=fy-b/200,inv=t=>t>0.206893?t*t*t:(t-16/116)/7.787;
+  const X=inv(fx)*0.95047,Y=inv(fy),Z=inv(fz)*1.08883;
+  return[3.2406*X-1.5372*Y-0.4986*Z,-0.9689*X+1.8758*Y+0.0415*Z,0.0557*X-0.2040*Y+1.0570*Z].map(v=>Math.max(0.0005,Math.min(1,v)));
+}
+// Value errors matter most to a painter, so lightness counts a little more than hue.
+function dE(lin,t){const l=labOf(lin);return Math.hypot(1.4*(l[0]-t[0]),l[1]-t[1],l[2]-t[2])}
+function solveRecipe(target,comps){
+  const m=comps.length,T=12,w=new Array(m).fill(0);let best=null,be=1e9;
+  (function rec(j,left){
+    if(j===m-1){w[j]=left;if(!w.some(v=>v))return;const e=dE(mixN(comps,w),target);if(e<be){be=e;best=w.slice()}return}
+    for(let v=0;v<=left;v++){w[j]=v;rec(j+1,left-v)}
+  })(0,T);
+  let cur=best.map(v=>v/T);
+  const steps=[0,0.5,0.75,0.9,1.1,1.3,1.8,3];
+  for(let it=0;it<60;it++){
+    let improved=false;
+    for(let j=0;j<m;j++)for(const f of steps){
+      const t=cur.slice();t[j]=cur[j]===0?(f>1?0.01:0):cur[j]*f;
+      if(!t.some(v=>v>0))continue;
+      const e=dE(mixN(comps,t),target);if(e<be-1e-6){be=e;cur=t;improved=true}
+    }
+    if(!improved)break;
+  }
+  const norm=a=>{const s=a.reduce((x,y)=>x+y,0);return a.map(v=>v/s)};
+  cur=norm(cur);
+  // Drop specks that barely change the mix: fewer paints is easier at the easel.
+  for(let j=0;j<m;j++)if(cur[j]>0&&cur[j]<0.03){const t=norm(cur.map((v,k)=>k===j?0:v));const e=dE(mixN(comps,t),target);if(e<be+1.5){cur=t;be=e}}
+  return{w:cur,err:be,mix:mixN(comps,cur)};
+}
+function recipeText(z){
+  const items=z.comps.map((c,j)=>({c,w:z.w[j]})).filter(x=>x.w>0.001);
+  const nm=x=>x.c.id==='white'?'white':x.c.name;
+  if(items.length===1)return{main:items[0].c.id==='white'?'Titanium White only':items[0].c.name+' only',sub:'Straight from the tube.'};
+  items.sort((a,b)=>(a.c.id==='white')-(b.c.id==='white')||b.w-a.w);
+  const maxW=Math.max(...items.map(x=>x.w));
+  const main=items.filter(x=>x.w>=maxW/25),touch=items.filter(x=>x.w<maxW/25);
+  const base=Math.min(...main.map(x=>x.w));
+  let text=main.length===1?nm(main[0]).replace(/^white$/,'Titanium White'):main.map(x=>parts(nice(x.w/base))+' '+nm(x)).join(' : ');
+  const and=a=>a.length<2?a[0]:a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+  if(touch.length)text+=' + a touch of '+and(touch.map(nm));
+  const pc=v=>v<0.01?'under 1%':Math.round(v*100)+'%';
+  return{main:text,sub:items.map(x=>(x.c.id==='white'?'White':x.c.name)+' '+pc(x.w)).join(', ')+' by volume'};
+}
+function gamutNote(z){
+  if(z.err<=10)return '';
+  const ml=labOf(z.mix),tc=Math.hypot(z.a,z.b),mc=Math.hypot(ml[1],ml[2]);
+  return tc>mc+8?'This palette cannot mix a color this vivid. This is the closest it gets.':'This is the closest this palette gets. The hue is a little off from the photo.';
+}
+
 // ---------- image analysis ----------
 function loadImage(img,label){
   srcImg=img;
@@ -438,9 +539,10 @@ function loadImage(img,label){
   const c=document.createElement('canvas');c.width=W;c.height=H;
   const g=c.getContext('2d');g.drawImage(img,0,0,W,H);
   const d=g.getImageData(0,0,W,H).data;
-  Lraw=new Float32Array(W*H);mask=new Float32Array(W*H);
+  Lraw=new Float32Array(W*H);Araw=new Float32Array(W*H);Braw=new Float32Array(W*H);mask=new Float32Array(W*H);
   for(let i=0,j=0;i<d.length;i+=4,j++){
     Lraw[j]=LfromY(0.2126*LIN[d[i]]+0.7152*LIN[d[i+1]]+0.0722*LIN[d[i+2]]);
+    const lab=labOf([LIN[d[i]],LIN[d[i+1]],LIN[d[i+2]]]);Araw[j]=lab[1];Braw[j]=lab[2];
   }
   state.label=label;state.sel=-1;
   $('srcLabel').innerHTML=label==='Example still life'?'<span class="tag">Example image</span> · or drop a photo here':'';
@@ -473,13 +575,18 @@ function renderHi(){
   const g=cv.getContext('2d');g.drawImage(srcImg,0,0,w,h);
   const im=g.getImageData(0,0,w,h),d=im.data;
   const cols=zones.map(z=>state.view==='gray'?(v=>[v,v,v])(toSRGB(YfromL(z.L))):z.mix.map(toSRGB));
-  const kx=W/w,ky=H/h;
+  const kx=W/w,ky=H/h,mono=isMono();
   for(let y=0,i=0;y<h;y++){
     const row=Math.min(H-1,Math.floor(y*ky))*W;
     for(let x=0;x<w;x++,i+=4){
-      const L=LfromY(0.2126*LIN[d[i]]+0.7152*LIN[d[i+1]]+0.0722*LIN[d[i+2]]);
-      const a=adjL(L,mask[row+Math.min(W-1,Math.floor(x*kx))]);
-      let bi=0,bd=1e9;for(let j=0;j<zones.length;j++){const e=Math.abs(a-zones[j].L);if(e<bd){bd=e;bi=j}}
+      let bi=0,bd=1e18;
+      if(mono){
+        const a=adjL(LfromY(0.2126*LIN[d[i]]+0.7152*LIN[d[i+1]]+0.0722*LIN[d[i+2]]),mask[row+Math.min(W-1,Math.floor(x*kx))]);
+        for(let j=0;j<zones.length;j++){const e=Math.abs(a-zones[j].L);if(e<bd){bd=e;bi=j}}
+      }else{
+        const lab=labOf([LIN[d[i]],LIN[d[i+1]],LIN[d[i+2]]]),Lp=adjL(lab[0],mask[row+Math.min(W-1,Math.floor(x*kx))]);
+        for(let j=0;j<zones.length;j++){const z=zones[j],e=(Lp-z.L)**2+(lab[1]-z.a)**2+(lab[2]-z.b)**2;if(e<bd){bd=e;bi=j}}
+      }
       const c=cols[bi];d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];d[i+3]=255;
     }
   }
@@ -487,6 +594,7 @@ function renderHi(){
 }
 
 function analyze(){
+  if(!isMono())return analyzeColor();
   const hist=new Float64Array(101);
   for(let i=0;i<Lpix.length;i++)hist[Math.max(0,Math.min(100,Math.round(Lpix[i])))]++;
   const total=Lpix.length;
@@ -522,7 +630,46 @@ function analyze(){
   computeMixes();
 }
 
+// Palette mode: group the photo by color (k-means in Lab, lightness from the Punch settings).
+function analyzeColor(){
+  const total=Lpix.length,k=state.nColors;
+  const step=Math.max(1,Math.floor(total/20000)),S=[];
+  for(let i=0;i<total;i+=step)S.push(i);
+  const d2=(i,c)=>{const x=Lpix[i]-c[0],y=Araw[i]-c[1],z=Braw[i]-c[2];return x*x+y*y+z*z};
+  let cents=[];{let a=0,b=0,c=0;for(const i of S){a+=Lpix[i];b+=Araw[i];c+=Braw[i]}cents.push([a/S.length,b/S.length,c/S.length])}
+  const dmin=new Float64Array(S.length).fill(1e18);
+  while(cents.length<k){
+    const c=cents[cents.length-1];let bi=-1,bd=-1;
+    for(let s=0;s<S.length;s++){const d=d2(S[s],c);if(d<dmin[s])dmin[s]=d;if(dmin[s]>bd){bd=dmin[s];bi=s}}
+    if(bd<=4)break;const i=S[bi];cents.push([Lpix[i],Araw[i],Braw[i]]);
+  }
+  const near=i=>{let bi=0,bd=1e18;for(let j=0;j<cents.length;j++){const d=d2(i,cents[j]);if(d<bd){bd=d;bi=j}}return bi};
+  for(let it=0;it<25;it++){
+    const acc=cents.map(()=>[0,0,0,0]);
+    for(const i of S){const j=near(i),q=acc[j];q[0]+=Lpix[i];q[1]+=Araw[i];q[2]+=Braw[i];q[3]++}
+    let moved=0;const next=[];
+    acc.forEach((q,j)=>{if(!q[3])return;const c=[q[0]/q[3],q[1]/q[3],q[2]/q[3]];moved+=Math.abs(c[0]-cents[j][0])+Math.abs(c[1]-cents[j][1])+Math.abs(c[2]-cents[j][2]);next.push(c)});
+    cents=next;if(moved<0.05)break;
+  }
+  const a=new Uint8Array(total),acc=cents.map(()=>[0,0,0,0]);
+  for(let i=0;i<total;i++){const j=near(i);a[i]=j;const q=acc[j];q[0]+=Lpix[i];q[1]+=Araw[i];q[2]+=Braw[i];q[3]++}
+  const order=acc.map((q,j)=>({j,q})).filter(o=>o.q[3]>0).sort((x,y)=>x.q[0]/x.q[3]-y.q[0]/y.q[3]);
+  const map=new Int16Array(cents.length).fill(0);zones=[];
+  order.forEach((o,n)=>{map[o.j]=n;const q=o.q,L=q[0]/q[3],A=q[1]/q[3],B=q[2]/q[3];
+    zones.push({L,a:A,b:B,area:q[3]/total,target:linOfLab(L,A,B)})});
+  for(let i=0;i<total;i++)a[i]=map[a[i]];
+  assign=a;
+  if(state.sel>=zones.length)state.sel=-1;
+  computeMixes();
+}
+
 function computeMixes(){
+  if(!isMono()){
+    const comps=palTubes().concat([WHITE_T]),shift=state.med==='acrylic'?3:0;
+    zones.forEach(z=>{const r=solveRecipe([Math.min(100,z.L+shift),z.a,z.b],comps);
+      z.comps=comps;z.w=r.w;z.err=r.err;z.mix=r.mix});
+    render();return;
+  }
   const p=byId(state.pig);
   const partners={near:byId(p.near),comp:byId(p.comp)};
   const shift=state.med==='acrylic'?3:0;
@@ -563,7 +710,10 @@ function render(){
     pi.data[i]=col[0];pi.data[i+1]=col[1];pi.data[i+2]=col[2];pi.data[i+3]=255;
   }
   gctx.putImageData(gi,0,0);pctx.putImageData(pi,0,0);
-  $('posterCap').textContent=state.sel>=0?'Tone '+(state.sel+1)+' highlighted':'Value map · '+zones.length+' tones';
+  const unit=isMono()?'Tone':'Color';
+  $('posterCap').textContent=state.sel>=0?unit+' '+(state.sel+1)+' highlighted':(isMono()?'Value map · '+zones.length+' tones':'Color map · '+zones.length+' colors');
+  if(!isMono()){renderPaletteUI();return}
+  $('lgTt').textContent='top: target tone';
 
   // two strips: same-family darks on top, complement darks underneath
   [['near','strip','nearLbl','Same family'],['comp','strip2','compLbl','Complement']].forEach(([k,id,lid,kind])=>{
@@ -641,16 +791,101 @@ function render(){
 
 function select(i){state.sel=state.sel===i?-1:i;render()}
 
+function fillStrip(id,color,label){
+  const strip=$(id);strip.innerHTML='';
+  zones.forEach((z,i)=>{
+    const d=document.createElement('div');
+    d.style.background=color(z);
+    d.style.flexGrow='1';d.style.minWidth='0';d.style.fontSize=zones.length>9?'10.5px':'';
+    d.style.color=z.L>55?'#111':'#f2f2f2';
+    d.textContent=label?label(z,i):i+1;d.title='Color '+(i+1);
+    if(state.sel===i)d.style.boxShadow='inset 0 -4px 0 #ff3d7f';
+    d.onclick=e=>{e.stopPropagation();select(i)};
+    strip.appendChild(d);
+  });
+}
+function palPaintList(){
+  const def=PALETTE_DEFS[state.palette],pal=PALETTES[state.brand],tubes=palTubes(),n=zones.length;
+  const used=j=>zones.filter(z=>z.w[j]>0.001).length;
+  const list=tubes.map((t,j)=>({chip:hex(t.rgb),name:pal.brand+' '+t.name+' ('+t.code+')',desc:def.roles[j]+' Used in '+used(j)+' of '+n+' mixes.'}));
+  list.push({chip:hex(WHITE.rgb),name:pal.brand+' '+pal.white,desc:'Lightens every mix. Used in '+used(tubes.length)+' of '+n+' mixes, so have plenty.'});
+  list.push(state.med==='oil'
+    ?{chip:'transparent',name:'Water-mixable linseed oil or medium',desc:'Optional. A drop loosens stiff mixes. Clean brushes with water.'}
+    :{chip:'transparent',name:'Acrylic retarder or slow-drying medium',desc:'Optional. Keeps your color puddles workable longer on the palette.'});
+  return list;
+}
+function palTips(){
+  const def=PALETTE_DEFS[state.palette],t=palTubes();
+  const tips=['Mix every color before you start, in separate puddles. Make more of the colors with the largest share of the picture.',
+    'Match value first, then hue. Dab each mix on a card next to the same area of your photo and squint. A mix with the right value but slightly off hue still reads correctly.'];
+  if(state.palette==='zorn')tips.push('Zorn has no real blue. '+t[2].name+' with white looks blue-gray next to the warm ochre and red, so let it do the job of blue in skies, eyes and shadows.',
+    'For skin, start from '+t[0].name+', '+t[1].name+' and white, then cool the shadow side with a little of the black-and-white gray.');
+  if(state.palette==='primary')tips.push('Primaries make the brightest mixes of these palettes. Browns and grays come from mixing all three, so add the third color a little at a time to dull a mix.',
+    t[2].name+' is the strongest paint here. Add it in specks.');
+  if(state.palette==='warmcool')tips.push('Mix two strings first, at values 1, 3, 5, 7 and 9: cool grays from '+t[1].name+' and white, and warm red-oranges from '+t[0].name+' and white.',
+    'For basic skin tones, mix 2 parts of a red-orange with 1 part of the gray at the same value.',
+    'Blend toward the red-oranges for warmer cheeks and lips, and toward the grays for hair and cooler notes. Use the grays for blue eyes and backgrounds.');
+  tips.push(state.med==='acrylic'?'Let a test dab dry for a minute before judging it. Acrylic darkens as it dries.':'Keep the oil content low in early layers (fat over lean).',
+    'Paint from dark to light: block in the darkest shapes first, then work up to the lights.');
+  return tips;
+}
+function renderPaletteUI(){
+  const def=PALETTE_DEFS[state.palette],pal=PALETTES[state.brand],tubes=palTubes();
+  $('nearLbl').innerHTML='<b>Palette mixes</b> · tap a color to find it in the map';
+  $('compLbl').innerHTML='<b>Values</b> · the same colors in gray, for checking value';
+  $('stripWrap').classList.remove('on');$('strip2Wrap').classList.remove('on');
+  fillStrip('strip',z=>hex(z.mix));
+  fillStrip('strip2',z=>grayHex(z.L),z=>(z.L/10).toFixed(1));
+
+  $('sheetTitle').textContent=def.title+' study';
+  $('sheetMeta').textContent=state.label+' · '+zones.length+' colors · '+tubes.map(t=>t.name).join(', ')+' and white · '+(state.med==='oil'?pal.brand+' water-mixable oil':'acrylic')+
+    (state.contrast!=='natural'?' · '+state.contrast+' contrast':'')+(state.key!=='natural'?' · '+state.key+' key':'')+
+    (mask&&mask.some(v=>v>0)&&state.lift>0?' · one area brightened':'');
+  $('medNote').textContent=state.med==='acrylic'
+    ?'Acrylic dries a little darker, so these wet mixes are set slightly lighter than the target.'
+    :'Water-mixable oils dry close to their wet color, so mixes match the target directly.';
+  $('lgTt').textContent='top: photo color';
+  $('lgT').style.background=zones.length?hex(zones[Math.floor(zones.length/2)].target):'#888';
+  $('lgM').style.background=zones.length?hex(zones[Math.floor(zones.length/2)].mix):'#888';
+  renderPalTubes();
+
+  $('paints').innerHTML=palPaintList().map(x=>'<li><span class="chip" style="background:'+x.chip+'"></span><div><b>'+x.name+'</b><p>'+x.desc+'</p></div></li>').join('');
+  const rows=$('rows');rows.innerHTML='';
+  zones.forEach((z,i)=>{
+    const r=recipeText(z),note=gamutNote(z);
+    const el=document.createElement('div');
+    el.className='row'+(state.sel===i?' sel':'');el.tabIndex=0;el.setAttribute('role','button');
+    el.setAttribute('aria-pressed',state.sel===i?'true':'false');
+    const label=i===0?'darkest':(i===zones.length-1?'lightest':'');
+    el.innerHTML='<div class="sw"><div style="background:'+hex(z.target)+'"></div><div style="background:'+hex(z.mix)+'"></div></div>'+
+      '<div style="min-width:0"><div class="rowtop"><strong>Color '+(i+1)+'</strong><span>value '+(z.L/10).toFixed(1)+(label?' · '+label:'')+' · '+Math.round(z.area*100)+'% of image</span></div>'+
+      '<div class="ratio">'+r.main+'</div><div class="sub">'+r.sub+'</div>'+(note?'<div class="flag">'+note+'</div>':'')+'</div>';
+    el.onclick=()=>select(i);
+    el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(i)}};
+    rows.appendChild(el);
+  });
+  $('tips').innerHTML=palTips().map(t=>'<li>'+t+'</li>').join('');
+}
+function renderPalTubes(){
+  if(isMono())return;
+  const def=PALETTE_DEFS[state.palette],tubes=palTubes();
+  $('palTubes').innerHTML=tubes.concat([WHITE_T]).map(t=>'<span class="tube"><span class="dot" style="background:'+hex(t.id==='white'?WHITE.rgb:mix(0.35,t))+'"></span>'+(t.id==='white'?PALETTES[state.brand].white:t.name)+'</span>').join('');
+  const note=(def.note&&def.note[state.brand])?' '+def.note[state.brand]:'';
+  $('palNote').innerHTML='';
+  $('palNote').append(def.about+note+(def.link?' ':''));
+  if(def.link){const a=document.createElement('a');a.href=def.link;a.target='_blank';a.rel='noopener';a.textContent='Read her guide.';$('palNote').append(a)}
+}
+
 function sheetText(){
-  const p=PIGMENTS.find(x=>x.id===state.pig);
+  const p=PIGMENTS.find(x=>x.id===state.pig),mono=isMono(),unit=mono?'Tone':'Color';
   const out=[];
-  out.push(p.name.toUpperCase()+' VALUE STUDY');
+  out.push((mono?p.name+' value study':PALETTE_DEFS[state.palette].title+' study').toUpperCase());
   out.push($('sheetMeta').textContent,'');
   out.push('PAINTS');
   document.querySelectorAll('#paints li').forEach(li=>out.push('- '+li.querySelector('b').textContent+': '+li.querySelector('p').textContent));
-  out.push('','TONES (darkest to lightest)');
-  zones.forEach((z,i)=>{const r=ratioText(z,p);
-    out.push('Tone '+(i+1)+' | value '+(z.L/10).toFixed(1)+' | '+Math.round(z.area*100)+'% of image | '+r.main+' ('+r.sub+')'+(z.short?' | darkest reachable with these paints':''));});
+  out.push('',(mono?'TONES':'COLORS')+' (darkest to lightest)');
+  zones.forEach((z,i)=>{const r=mono?ratioText(z,p):recipeText(z),warn=mono?(z.short?'darkest reachable with these paints':''):gamutNote(z);
+    out.push(unit+' '+(i+1)+' | value '+(z.L/10).toFixed(1)+' | '+Math.round(z.area*100)+'% of image | '+r.main+' ('+r.sub+')'+(warn?' | '+warn:''));});
   out.push('','TIPS');
   document.querySelectorAll('#tips li').forEach((li,i)=>out.push((i+1)+'. '+li.textContent));
   out.push('','Ratios are model estimates by volume. Test each mix on a card against your reference.');
@@ -660,7 +895,9 @@ function sheetText(){
 // ---------- painting sheet: one image with the photo, map, tones, mixes, settings and tips ----------
 async function buildSheet(){
   try{if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
-  const p=byId(state.pig),pal=PALETTES[state.brand],partner=byId(p[state.darks]);
+  const p=byId(state.pig),pal=PALETTES[state.brand],mono=isMono(),def=PALETTE_DEFS[state.palette];
+  const partner=mono?byId(p[state.darks]):null,tubes=mono?[]:palTubes(),unit=mono?'Tone':'Color';
+  const rec=z=>mono?ratioText(z,p):recipeText(z);
   const SW=1240,PAD=60,CW=SW-2*PAD;
   const cv=document.createElement('canvas');cv.width=SW;cv.height=9000;
   const g=cv.getContext('2d');
@@ -681,7 +918,7 @@ async function buildSheet(){
 
   let y=PAD;
   // header
-  font(700,56,F.d);y=wrap(p.name+' value study',PAD,y,CW,64);
+  font(700,56,F.d);y=wrap(mono?p.name+' value study':def.title+' study',PAD,y,CW,64);
   const when=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
   font(400,21,F.m);y=wrap(when+' · '+state.label+' · '+pal.brand+' '+(state.med==='oil'?'water-mixable oil':'acrylic'),PAD,y+8,CW,30,C.muted);
   y+=28;
@@ -693,21 +930,21 @@ async function buildSheet(){
   g.drawImage(srcImg,PAD+ox,y,dw,dh);g.drawImage(map,PAD+bw+gap+ox,y,dw,dh);
   g.strokeStyle=C.line;g.lineWidth=2;g.strokeRect(PAD+ox,y,dw,dh);g.strokeRect(PAD+bw+gap+ox,y,dw,dh);
   y+=dh+12;font(500,19,F.m);g.fillStyle=C.muted;
-  g.fillText('Reference photo',PAD+ox,y);g.fillText('Value map · '+zones.length+' tones',PAD+bw+gap+ox,y);
+  g.fillText('Reference photo',PAD+ox,y);g.fillText(mono?'Value map · '+zones.length+' tones':'Color map · '+zones.length+' colors',PAD+bw+gap+ox,y);
   y+=48;
 
   // tone scale
-  y=section('Tone scale · darkest to lightest',y);
+  y=section((mono?'Tone':'Color')+' scale · darkest to lightest',y);
   const n=zones.length,tg=8,tw=(CW-tg*(n-1))/n,th=130;
   zones.forEach((z,i)=>{
     const x=PAD+i*(tw+tg);g.fillStyle=hex(z.mix);g.fillRect(x,y,tw,th);
     g.strokeStyle=C.line;g.lineWidth=1.5;g.strokeRect(x,y,tw,th);
     const ink=z.L>55?'#111111':'#f2f2f2';g.fillStyle=ink;
     font(700,34,F.d);g.fillText(String(i+1),x+12,y+10);
-    font(500,17,F.m);g.fillText('value '+(z.L/10).toFixed(1),x+12,y+th-28);
+    font(500,17,F.m);g.fillText((n>7?'':'value ')+(z.L/10).toFixed(1),x+(n>7?8:12),y+th-28);
   });
   y+=th+18;font(400,20,F.b);
-  y=wrap(state.darks==='comp'?'Darks deepened with the complement'+(partner?', '+partner.name:'')+'.':'Darks kept in the same color family'+(partner?', deepened with '+partner.name:'')+'.',PAD,y,CW,28,C.muted);
+  y=wrap(!mono?'Mixed from '+tubes.map(t=>t.name).join(', ')+' and '+pal.white+'.':state.darks==='comp'?'Darks deepened with the complement'+(partner?', '+partner.name:'')+'.':'Darks kept in the same color family'+(partner?', deepened with '+partner.name:'')+'.',PAD,y,CW,28,C.muted);
   y+=30;
 
   // paints
@@ -726,27 +963,34 @@ async function buildSheet(){
   // mixes
   y=section('Mixing recipes · parts by volume',y);
   zones.forEach((z,i)=>{
-    const r=ratioText(z,p),sw=104,x=PAD+sw+24,w=CW-sw-24,top=y;
+    const r=rec(z),sw=104,x=PAD+sw+24,w=CW-sw-24,top=y;
     const label=i===0?' · darkest':(i===n-1?' · lightest':'');
-    font(500,19,F.m);let yy=wrap('Tone '+(i+1)+' · value '+(z.L/10).toFixed(1)+label+' · '+Math.round(z.area*100)+'% of picture',x,y,w,26,C.muted);
+    font(500,19,F.m);let yy=wrap(unit+' '+(i+1)+' · value '+(z.L/10).toFixed(1)+label+' · '+Math.round(z.area*100)+'% of picture',x,y,w,26,C.muted);
     font(600,28,F.b);yy=wrap(r.main,x,yy+4,w,36);
     font(400,20,F.b);yy=wrap(r.sub,x,yy+2,w,28,C.muted);
-    if(z.short){font(500,19,F.b);yy=wrap('As dark as these paints go. The real tone is a little darker.',x,yy+2,w,26,C.warn)}
+    const warn=mono?(z.short?'As dark as these paints go. The real tone is a little darker.':''):gamutNote(z);
+    if(warn){font(500,19,F.b);yy=wrap(warn,x,yy+2,w,26,C.warn)}
     const h=Math.max(sw,yy-top);
-    g.fillStyle=grayHex(z.L);g.fillRect(PAD,top,sw,sw/2);g.fillStyle=hex(z.mix);g.fillRect(PAD,top+sw/2,sw,sw/2);
+    g.fillStyle=mono?grayHex(z.L):hex(z.target);g.fillRect(PAD,top,sw,sw/2);g.fillStyle=hex(z.mix);g.fillRect(PAD,top+sw/2,sw,sw/2);
     g.strokeStyle=C.line;g.lineWidth=1.5;g.strokeRect(PAD,top,sw,sw);
     y=top+h+18;g.fillStyle=C.line;g.fillRect(PAD,y,CW,1);y+=18;
   });
-  font(400,18,F.m);g.fillStyle=C.muted;g.fillText('Swatch top: target value in gray · bottom: predicted mix',PAD,y);
+  font(400,18,F.m);g.fillStyle=C.muted;g.fillText(mono?'Swatch top: target value in gray · bottom: predicted mix':'Swatch top: photo color · bottom: predicted mix',PAD,y);
   y+=50;
 
   // settings
   y=section('Settings',y);
   const brightened=mask&&mask.some(v=>v>0)&&state.lift>0;
   const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
-  const rows=[
+  const rows=!mono?[
     ['Brand',pal.brand],['Paint',state.med==='oil'?'Water-mixable oil':'Acrylic'],
-    ['Color',p.name+' ('+p.code+')'],['Dark tones',(state.darks==='comp'?'Complement':'Same family')+(partner?' · '+partner.name:'')],
+    ['Palette',def.name],['Paints',tubes.map(t=>t.name).join(', ')+', '+pal.white],
+    ['Number of colors',String(n)],['Contrast',cap(state.contrast)],
+    ['Key',cap(state.key)],['Brightened area',brightened?'Yes, lifted '+state.lift:'None'],
+    ['Map shows',state.view==='gray'?'Gray':'Paint color']
+  ]:[
+    ['Brand',pal.brand],['Paint',state.med==='oil'?'Water-mixable oil':'Acrylic'],
+    ['Palette','Monochromatic'],['Color',p.name+' ('+p.code+')'],    ['Dark tones',(state.darks==='comp'?'Complement':'Same family')+(partner?' · '+partner.name:'')],
     ['Number of tones',String(n)],['Tones chosen',state.mode==='even'?'Even steps':'Fit the photo'],
     ['Contrast',cap(state.contrast)],['Key',cap(state.key)],
     ['Brightened area',brightened?'Yes, lifted '+state.lift:'None'],['Value map shows',state.view==='gray'?'Gray':'Paint color']
@@ -818,7 +1062,17 @@ function paintNote(p){
   return 'Pigments '+p.code+'. Straight from the tube it reaches about value '+v+(p.pureL>45?', so the darker tones lean on the partner paint.':'.');
 }
 buildPig();
-$('nTones').addEventListener('input',e=>{state.n=+e.target.value;$('nOut').textContent=state.n;analyze()});
+$('nTones').addEventListener('input',e=>{const v=+e.target.value;if(isMono())state.n=v;else state.nColors=v;$('nOut').textContent=v;analyze()});
+function applyPaletteMode(){
+  const mono=isMono();
+  $('colorField').hidden=!mono;$('palField').hidden=mono;$('modeField').hidden=!mono;
+  $('scaleLbl').textContent=mono?'Tone scale · tap a scale to use it for the map and mixing sheet':'Color scale';
+  $('photoH2').textContent=mono?'Photo & tones':'Photo & colors';
+  $('nLbl').textContent=mono?'Number of tones':'Number of colors';
+  const r=$('nTones');r.max=mono?9:12;r.value=mono?state.n:state.nColors;$('nOut').textContent=r.value;
+  $('nHint').textContent=mono?'3–5 for a quick block-in, 7–9 for a finished grisaille.':'5–7 for a simple study, 10–12 for more color detail.';
+  renderPalTubes();
+}
 function seg(id,key,after){
   $(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
     state[key]=b.dataset.v;$(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));after();});
@@ -834,11 +1088,11 @@ function showLightbox(canvas,title,mode){
 }
 function openLightbox(){
   const p=byId(state.pig);
-  showLightbox(renderHi(),p.name+' · '+zones.length+' tones'+(state.view==='gray'?' · gray':''),'map');
+  showLightbox(renderHi(),(isMono()?p.name+' · '+zones.length+' tones':PALETTE_DEFS[state.palette].title+' · '+zones.length+' colors')+(state.view==='gray'?' · gray':''),'map');
 }
 async function openSheet(){
   const b=$('sheetBtn');b.disabled=true;const t=b.textContent;b.textContent='Making sheet…';
-  try{showLightbox(await buildSheet(),'Painting sheet · '+byId(state.pig).name,'sheet')}
+  try{showLightbox(await buildSheet(),'Painting sheet · '+(isMono()?byId(state.pig).name:PALETTE_DEFS[state.palette].title),'sheet')}
   catch(e){$('sheetMsg').textContent='Could not make the sheet. Try again.'}
   finally{b.disabled=false;b.textContent=t}
 }
@@ -886,9 +1140,9 @@ $('pickSearch').addEventListener('input',renderPicker);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('picker').hidden)closePicker()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('lightbox').hidden)closeLightbox()});
 $('lbSave').onclick=()=>{
-  const p=byId(state.pig),slug=p.label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const p=byId(state.pig),slug=(isMono()?p.label:PALETTE_DEFS[state.palette].name).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   const day=new Date().toISOString().slice(0,10);
-  const name=lbMode==='sheet'?'painting-sheet-'+slug+'-'+day+'.png':'value-map-'+slug+'-'+zones.length+'-tones.png';
+  const name=lbMode==='sheet'?'painting-sheet-'+slug+'-'+day+'.png':(isMono()?'value-map-':'color-map-')+slug+'-'+zones.length+(isMono()?'-tones.png':'-colors.png');
   hiCanvas.toBlob(async blob=>{
     if(!blob){$('lbMsg').textContent='Could not create the image. Try again.';return}
     const file=new File([blob],name,{type:'image/png'});
@@ -936,7 +1190,7 @@ $('clearBtn').onclick=()=>{mask.fill(0);adjust()};
   const end=()=>{if(down){down=false;adjust()}};
   cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
 })();
-seg('modeSeg','mode',analyze);(function(){let prev=state.brand;seg('brandSeg','brand',()=>{buildPig(prev);prev=state.brand;computeMixes()})})();seg('pigSeg','pig',()=>{buildPig();computeMixes()});seg('medSeg','med',computeMixes);seg('viewSeg','view',render);
+seg('palSeg','palette',()=>{state.sel=-1;applyPaletteMode();analyze()});seg('modeSeg','mode',analyze);(function(){let prev=state.brand;seg('brandSeg','brand',()=>{buildPig(prev);prev=state.brand;computeMixes()})})();seg('pigSeg','pig',()=>{buildPig();computeMixes()});seg('medSeg','med',computeMixes);seg('viewSeg','view',render);
 
 function readFile(f){
   if(!f||!f.type.startsWith('image/')){$('srcLabel').textContent='That file is not an image. Choose a JPG, PNG or HEIC photo.';return}

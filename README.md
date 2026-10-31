@@ -5,6 +5,7 @@ A small web app for planning one-color (monochrome) paintings in water-mixable o
 Load a reference photo and it will:
 
 - group the photo into 3–9 values and show them as a value map
+- or, with a limited palette (Zorn, primary colors, or Anna Wakitsch's warm & cool palette), group the photo into 3–12 colors and give a recipe for each from that palette's paints and white
 - give a mixing ratio for each tone: your chosen color plus Titanium White, with a darker partner paint for the deepest tones
 - compare two ways of mixing the darks: a same-family color (top scale) or the complement (bottom scale)
 - let you add punch: contrast, overall brightness, and a brush to brighten one area
